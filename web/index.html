@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Everything on this page comes from this site; it cannot send your file anywhere. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; form-action 'none'">
+<title>Better Dual Loop</title>
+<meta name="description" content="An unofficial firmware mod for the NUX Dual Loop Stereo looper: switch the MODS on the pedal, patch the official V2.2.0 firmware in your browser.">
+<meta property="og:title" content="Better Dual Loop">
+<meta property="og:description" content="An unofficial firmware mod for the NUX Dual Loop Stereo looper: switch the MODS on the pedal, patch the official V2.2.0 firmware in your browser.">
+<meta property="og:url" content="https://aisus.github.io/better-dual-loop/">
+<meta property="og:image" content="https://aisus.github.io/better-dual-loop/screens/mods.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+<script type="module" src="app.js"></script>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Better Dual Loop</h1>
+    <p class="sub">An unofficial firmware mod for the
+      <a href="https://nuxaudio.com/product/dualloopstereo/">NUX Dual Loop Stereo</a></p>
+    <div class="meta">
+      <span id="version" class="version">…</span>
+      <a class="repo" href="https://github.com/aisus/better-dual-loop" aria-label="Source on GitHub">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>
+      </a>
+    </div>
+  </header>
+
+  <div class="columns">
+    <div class="about">
+      <figure class="screens" aria-label="The pedal's screen with the mod">
+        <div id="slides" class="slides">
+          <figure>
+            <img src="screens/boot.png" width="960" height="376"
+              alt="The pedal's boot screen: the NUX logo with 'Better Dual Loop', the release and 'unofficial mod by aisus' under it">
+          </figure>
+          <figure>
+            <img src="screens/menu.png" width="960" height="376" loading="lazy"
+              alt="The pedal's settings menu: the tiles EXP FS, MIDI and RESET, and the selected MODS tile">
+          </figure>
+          <figure>
+            <img src="screens/mods.png" width="960" height="376" loading="lazy"
+              alt="The pedal's MODS page: DRUMS ON STOP on and selected, INHERIT DRUMS off">
+          </figure>
+        </div>
+        <button id="prev" class="arrow prev" type="button" aria-label="Previous screen">
+          <svg viewBox="4 4 16 16" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <button id="next" class="arrow next" type="button" aria-label="Next screen">
+          <svg viewBox="4 4 16 16" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </figure>
+
+      <section class="patcher" aria-label="Patcher">
+        <div id="drop" class="console">
+          <input id="file" type="file" accept=".zip,.bin">
+          <ol id="log" class="log" role="log" aria-live="polite"><li class="busy">Loading…</li></ol>
+        </div>
+      </section>
+
+      <section class="intro">
+        <h2>Modifications</h2>
+        <p>All mods are off by default. Switch them on in the new MODS menu.</p>
+        <div class="mods">
+          <article class="mod">
+            <h3>DRUMS ON STOP</h3>
+            <dl>
+              <dt>Default</dt>
+              <dd>Stopping a loop also stops the drums.</dd>
+              <dt>Patched</dt>
+              <dd>The drums keep playing until stopped separately.</dd>
+            </dl>
+          </article>
+          <article class="mod">
+            <h3>INHERIT DRUMS</h3>
+            <dl>
+              <dt>Default</dt>
+              <dd>In A/B mode, recording the second loop stops the drums.</dd>
+              <dt>Patched</dt>
+              <dd>The second loop gets the drums if the first has them.</dd>
+            </dl>
+          </article>
+        </div>
+      </section>
+    </div>
+
+    <div class="work">
+      <section class="step s1">
+        <h2><span class="n">1</span> Get the official firmware</h2>
+        <p>Download firmware <strong>V2.2.0</strong> from
+          <a href="https://nuxaudio.com/product/dualloopstereo/">NUX's website</a> and keep the zip.
+          You may need it to roll back, and NUX removes old versions without notice.</p>
+      </section>
+
+      <section class="step s2">
+        <h2><span class="n">2</span> Apply the patch</h2>
+        <p>Drop the zip into the patcher and download the modded firmware.</p>
+      </section>
+
+      <section class="step s3">
+        <h2><span class="n">3</span> Flash it</h2>
+        <p>Like an official update, with NUX's updater from the zip. Your loops, settings and a custom
+          boot picture are kept.</p>
+        <details>
+          <summary>Steps</summary>
+          <ol>
+            <li>Unplug the power. Hold LOOP MODE and footswitch 2 and plug it back in.
+              <span class="detail">The screen shows "Device Firmware Update".</span></li>
+            <li>Connect USB-C and open the updater.
+              <span class="detail">It is unsigned (the official one too) and may show the warning:</span>
+              <dl class="os">
+                <dt>Windows</dt>
+                <dd class="detail"><em>More info</em> → <em>Run anyway</em></dd>
+                <dt>macOS</dt>
+                <dd class="detail"><em>System Settings</em> → <em>Privacy &amp; Security</em> → <em>Open Anyway</em></dd>
+              </dl></li>
+            <li>Set <em>MIDI Device Out</em> and <em>MIDI Device In</em> to <em>MIDI-DFU</em>.
+              <span class="detail">Leave the other settings as they are.</span></li>
+            <li>Click <em>file...</em>, pick <code>NML-3DLS-<span class="v">V2.2.0-MOD</span>.bin</code>
+              (extract it from the zip first), then click <em>Start Update</em>.</li>
+            <li>When it reports success, unplug the power and plug it back in.
+              <span class="detail">The boot screen shows "Better Dual Loop" and
+                "<span class="v">V2.2.0-MOD</span>" under the logo (if you didn't set a custom boot
+                picture).</span></li>
+          </ol>
+        </details>
+      </section>
+
+      <section class="step back">
+        <h2><span class="n">↺</span> Roll back to the official firmware</h2>
+        <p>Repeat step 3 with <code>NML-3DLSFirmwareV2.2.0.bin</code> from the original zip. The mod
+          never touches the bootloader, so the rollback should work at any time.</p>
+      </section>
+    </div>
+  </div>
+
+  <footer>
+    <p>A hobby project made with
+      <a href="https://github.com/NationalSecurityAgency/ghidra">Ghidra</a> and Claude Code.
+      Tested on one pedal and provided as is with no guarantee.
+      Use on your device at your own risk.</p>
+    <p>An unofficial patch, not affiliated with or endorsed by NUX / Cherub Technology.
+      <a href="https://github.com/aisus/better-dual-loop">Source on GitHub</a> (MIT licence).</p>
+  </footer>
+</main>
+</body>
+</html>

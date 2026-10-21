@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220">
+  <!-- The MODS tile without its label: three faders on the tile's teal, enlarged and centred. -->
+  <rect width="220" height="220" rx="44" fill="#9FEEEB"/>
+  <g fill="#000" transform="translate(110 110) scale(1.4) translate(-110 -88)">
+    <rect x="73" y="42" width="10" height="92" rx="5"/>
+    <rect x="105" y="42" width="10" height="92" rx="5"/>
+    <rect x="137" y="42" width="10" height="92" rx="5"/>
+    <circle cx="78" cy="70" r="17"/>
+    <circle cx="110" cy="108" r="17"/>
+    <circle cx="142" cy="58" r="17"/>
+  </g>
+</svg>

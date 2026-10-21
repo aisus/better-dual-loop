@@ -1,0 +1,6 @@
+# Build outputs (make, npm run build), dependencies (npm ci) and patched images
+node_modules/
+build/
+*.bin
+*.zip
+
