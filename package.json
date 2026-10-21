@@ -1,0 +1,27 @@
+{
+  "name": "better-dual-loop",
+  "private": true,
+  "description": "Unofficial firmware mod for the NUX Dual Loop Stereo (NML-3DLS) looper: the page that makes it",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "test": "node --test",
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write .",
+    "build": "node build.mjs",
+    "dev": "node dev.mjs"
+  },
+  "dependencies": {
+    "jszip": "3.10.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "esbuild": "0.28.2",
+    "eslint": "10.11.0",
+    "globals": "17.12.0",
+    "prettier": "3.9.9"
+  }
+}

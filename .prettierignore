@@ -1,0 +1,4 @@
+package-lock.json
+# Prose, wrapped by hand (Prettier would pad the tables and reflow the page's text)
+*.md
+*.html
