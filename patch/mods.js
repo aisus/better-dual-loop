@@ -7,7 +7,13 @@ import { bl, bw, nops, pointer } from "./thumb.js";
 export const MODS_BASE = 0x4e200;
 
 // Changes to NUX's code: [address, new bytes, what for].
-export const codeChanges = (mods) => [...MENU(mods), ...DRUMS_ON_STOP(mods), ...INHERIT_DRUMS(mods), ...BOOT_SCREEN];
+export const codeChanges = (mods) => [
+  ...MENU(mods),
+  ...DRUMS_ON_STOP(mods),
+  ...INHERIT_DRUMS(mods),
+  ...DELETE_DIALOG(mods),
+  ...BOOT_SCREEN,
+];
 
 // --- The MODS page ---------------------------------------------------------------------------------
 // The settings menu's tile list, page drawing, knobs and button go through our code, which adds a
@@ -49,11 +55,20 @@ const DRUMS_ON_STOP = (mods) => {
 };
 
 // --- INHERIT DRUMS ---------------------------------------------------------------------------------
-// Each loop's drum settings are saved through our code, which passes the drum on/off on to the
-// loops not recorded yet; DRUM ON/OFF on an empty loop is remembered as that loop's own choice.
+// Each loop's drum settings are saved through our code, which passes the drum on/off, drum set and
+// groove on to the loops not recorded yet; a choice made on an empty loop is remembered as its own.
+// Saving a memory slot takes each loop's drum on/off from our code.
 const INHERIT_DRUMS = (mods) => [
   [0x392e, bw(0x392e, mods.mods_drum_toggle_save), "DRUM ON/OFF in A/B mode: save the loop's drums with ours"],
   [0x9ff4, [...bw(0x9ff4, mods.mods_drum_save_tail), ...nops(1)], "end of saving a loop's drums: continue in ours"],
+  [0x41a8, [...bl(0x41a8, mods.mods_slot_drum_on), ...nops(2)], "saving a memory slot: a loop's drum on/off from ours"],
+];
+
+// --- Delete dialog (always on) ---------------------------------------------------------------------
+// The memory slot's save and delete confirmations share one dialog; ours paints the delete one red.
+const DELETE_DIALOG = (mods) => [
+  [0x2934, bl(0x2934, mods.mods_dialog_bg), "save/delete dialog: the dim around it, through ours"],
+  [0x29b2, bl(0x29b2, mods.mods_dialog_bg), "save/delete dialog: its title bar, through ours"],
 ];
 
 // --- Boot screen -----------------------------------------------------------------------------------

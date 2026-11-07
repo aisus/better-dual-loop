@@ -106,6 +106,8 @@ const HOOKS = [
   "mods_drum_stop_only",
   "mods_drum_toggle_save",
   "mods_drum_save_tail",
+  "mods_slot_drum_on",
+  "mods_dialog_bg",
   "mods_settings_list_draw",
 ];
 const SYM = HOOKS.map((name, i) => `${(MODS_BASE + 8 * i).toString(16).padStart(8, "0")} T ${name}`).join("\n");

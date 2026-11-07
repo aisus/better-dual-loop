@@ -24,19 +24,21 @@ If you have the expertise to improve the solution, contributions are very welcom
   <img src="web/screens/mods.png" width="49%" alt="The MODS page: DRUMS ON STOP switched on, INHERIT DRUMS off">
 </p>
 
-Modifications in the new MODS settings menu (V2.2.0-MOD1.0):
+Modifications in the new MODS settings menu (V2.2.0-MOD1.1):
 
 | Switch | Default | Patched |
 |---|---|---|
 | **DRUMS ON STOP** | Stopping a loop also stops the drum machine. | The drums keep playing after stopping the loop; only DRUM ON/OFF stops them. |
-| **INHERIT DRUMS** | In A/B mode each loop has its own drum on/off: drums started with the first loop stop when you record the second. | If the first loop is recorded with the drums, the second loop has them on too. |
+| **INHERIT DRUMS** | In A/B mode each loop has its own drums (on/off, drum set, groove): drums started with the first loop stop when you record the second, unless you switch them on for it. | The second loop, until recorded, takes over the first loop's drums: on/off, drum set and groove (variation and strength). |
 
 Everything is off by default, which behaves exactly like the official firmware.
 
+Always on: the memory slot's delete confirmation is red (its title bar and the dim around it). In the official firmware it looks just like the save one, so a SAVE held a little too long, which asks to delete, is easily confirmed by mistake.
+
 Details:
 - DRUMS ON STOP covers every way a loop stops: CTRL, external footswitch, any STOP MODE (LOOP END, ONE SHOT, FADE OUT).
-- INHERIT DRUMS: pressing DRUM ON/OFF while a loop not recorded yet is selected counts as an explicit choice for that loop, which it keeps instead.
-- Unchanged official behaviour: in A/B mode, after reloading a saved memory slot, the second loop follows the first loop's drum on/off.
+- INHERIT DRUMS: pressing DRUM ON/OFF, or choosing another drum set or groove, while a loop not recorded yet is selected counts as an explicit choice for that loop: it keeps its own drums instead. The tempo is shared by both loops anyway.
+- INHERIT DRUMS also fixes an issue of the official firmware: saving a memory slot again while a loop is unchanged stored the selected loop's drum on/off for it, so one loop could take the other's. With INHERIT DRUMS on, each loop keeps its own.
 
 ## Using it
 
@@ -56,7 +58,9 @@ The page runs the patch (`patch/`) on your file, in your browser:
 2. It adds our code, compiled from `mods/`, right after NUX's code, and points the firmware to it:
    - The settings menu's drawing, knobs and buttons go through our code, which adds the MODS tile and page and passes everything else on unchanged.
    - The 11 places where stopping a loop also stops the drums call our code instead.
-   - When a loop's drum settings are saved, our code passes the drum on/off on to the loops not recorded yet, unless DRUM ON/OFF was pressed for them.
+   - When a loop's drum settings are saved, our code passes the drum on/off, drum set and groove on to the loops not recorded yet, unless a choice was made for them.
+   - Saving a memory slot takes each loop's drum on/off from that loop's own settings instead of from the drums playing at that moment (INHERIT DRUMS on, A/B mode).
+   - The memory slot's save/delete dialog sets two of its colours through our code, which paints the delete one red.
 3. It adds our pictures (`images/`) for the MODS tile and page, and stacks the release lines under the NUX logo on the boot screen.
 4. It updates the image's sizes and checksums, and moves the space the pedal keeps for a custom boot GIF past the added pictures.
 5. It checks that the result is exactly the image that was tested on a pedal, by its SHA-256.
