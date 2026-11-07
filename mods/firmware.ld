@@ -4,6 +4,7 @@
 /* LVGL 8 */
 lv_label_create = 0x00012ED5;
 lv_label_set_text = 0x00012EEB;
+lv_obj_set_style_bg_color = 0x00013CCF;
 lv_obj_set_style_text_color = 0x00013D1D;
 lv_obj_set_style_text_font = 0x00013D29;
 lv_obj_align = 0x00015951;
@@ -33,6 +34,7 @@ fw_drum_flags = 0x2000EE20;
 fw_drum_records = 0x2000EE5C;
 fw_tracks = 0x2000B2A8;
 fw_memory_slot = 0x20279168;
+fw_loop_mode = 0x20002F10;
 
 /* Pictures */
 fw_res_group = 0x0000B775;

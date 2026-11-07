@@ -29,6 +29,7 @@ enum { LV_ANIM_OFF = 0 };
 
 lv_obj_t *lv_label_create(lv_obj_t *parent);
 void lv_label_set_text(lv_obj_t *label, const char *text);
+void lv_obj_set_style_bg_color(lv_obj_t *obj, lv_color_t color, uint32_t selector);
 void lv_obj_set_style_text_color(lv_obj_t *obj, lv_color_t color, uint32_t selector);
 void lv_obj_set_style_text_font(lv_obj_t *obj, const lv_font_t *font, uint32_t selector);
 void lv_obj_align(lv_obj_t *obj, uint8_t align, lv_coord_t x, lv_coord_t y);
@@ -58,7 +59,9 @@ typedef struct fw_msg {
 enum { UI_CREATE = 0, UI_DESTROY = 1, UI_UPDATE = 2 };
 
 typedef struct {
-    uint8_t _0[7];
+    uint8_t _0[5];
+    uint8_t track;                              /* the active loop (A/B SPLIT), set by the drums */
+    uint8_t _1;
     uint8_t item;                               /* the page (tile) chosen */
     uint8_t cursor;                             /* the selected row on it */
     uint8_t in_page;                            /* nonzero while a page is open */
@@ -82,7 +85,9 @@ extern volatile uint8_t fw_settings_mods;       /* a spare byte saved with the s
 #define FW_TRACKS 2
 
 typedef struct {
-    uint8_t _0[0xF];
+    uint8_t _0[8];
+    uint16_t pattern;                           /* drum set (low byte) and groove (high byte) */
+    uint8_t _1[5];
     uint8_t on;                                 /* the drums play with this loop */
 } fw_drum_record;                               /* a loop's drum settings */
 
@@ -103,6 +108,7 @@ extern volatile uint32_t fw_drum_flags;
 extern volatile fw_drum_record fw_drum_records[FW_TRACKS];
 extern volatile fw_track fw_tracks[FW_TRACKS];
 extern volatile int16_t fw_memory_slot;         /* the memory slot loaded */
+extern volatile uint8_t fw_loop_mode;           /* 0 A+B SYNC, 1 A/B SPLIT, 2 GIG */
 
 /* --- Pictures ----------------------------------------------------------------------------------- */
 
