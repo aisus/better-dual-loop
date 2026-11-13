@@ -107,8 +107,15 @@ const HOOKS = [
   "mods_drum_toggle_save",
   "mods_drum_save_tail",
   "mods_slot_drum_on",
+  "mods_play_drums",
+  "mods_drum_tab",
   "mods_dialog_bg",
   "mods_settings_list_draw",
+  "mods_sync_footswitch1",
+  "mods_sync_footswitch2",
+  "mods_leds",
+  "mods_rec_bar_start",
+  "mods_split_rec_start",
 ];
 const SYM = HOOKS.map((name, i) => `${(MODS_BASE + 8 * i).toString(16).padStart(8, "0")} T ${name}`).join("\n");
 
@@ -214,7 +221,7 @@ test("patch: our changes, code and pictures, in whole blocks", async () => {
   assert.deepEqual(fw.code.subarray(MODS_BASE, MODS_BASE + 64), new Uint8Array(64).fill(0xab));
   const pics = groups(fw.resources);
   assert.deepEqual(decode(fw.resources, pics[3][17]), [...decode(LOGO), ...decode(STRIP)]);
-  assert.equal(pics[0x12].length, 0x75 + 10);
+  assert.equal(pics[0x12].length, 0x75 + 14);
   // The pins: only the official input, only the released output.
   release.output_sha256 = await sha256(out);
   assert.deepEqual(await patch(input, files(), release), out);

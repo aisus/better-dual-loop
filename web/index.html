@@ -44,7 +44,7 @@
           </figure>
           <figure>
             <img src="screens/mods.png" width="960" height="376" loading="lazy"
-              alt="The pedal's MODS page: DRUMS ON STOP on and selected, INHERIT DRUMS off">
+              alt="The pedal's MODS page: DRUMS ON STOP on and selected, SPLIT: INHERIT DRUMS and SYNC: FS PER LOOP off">
           </figure>
         </div>
         <button id="prev" class="arrow prev" type="button" aria-label="Previous screen">
@@ -72,11 +72,11 @@
               <dt>Default</dt>
               <dd>Stopping a loop also stops the drums.</dd>
               <dt>Patched</dt>
-              <dd>The drums keep playing until stopped separately.</dd>
+              <dd>The drums keep playing until stopped separately. Each loop keeps the drums it last played with.</dd>
             </dl>
           </article>
           <article class="mod">
-            <h3>INHERIT DRUMS</h3>
+            <h3>SPLIT: INHERIT DRUMS</h3>
             <dl>
               <dt>Default</dt>
               <dd>In A/B Split mode, the second loop needs a button press to have drums.</dd>
@@ -85,13 +85,17 @@
             </dl>
           </article>
           <article class="mod">
-            <h3>RED DELETE SCREEN</h3>
+            <h3>SYNC: FS PER LOOP</h3>
             <dl>
               <dt>Default</dt>
-              <dd>Memory slot save and delete screens look the same.</dd>
+              <dd>In A+B Sync mode, footswitch 1 controls the loop and footswitch 2 selects A or B.</dd>
               <dt>Patched</dt>
-              <dd>The delete confirmation screen is now red.</dd>
+              <dd>Footswitch 1 controls loop A and footswitch 2 controls loop B, as in A/B Split mode.</dd>
             </dl>
+          </article>
+          <article class="mod">
+            <h3>ALWAYS ON</h3>
+            <p>Minor tweaks and bugfixes: see <a href="https://github.com/aisus/better-dual-loop#always-on">details in the README</a>.</p>
           </article>
         </div>
       </section>

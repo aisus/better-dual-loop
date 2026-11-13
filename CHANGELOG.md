@@ -3,6 +3,23 @@
 Releases are named after the official firmware they apply to: `V2.2.0-MOD1.0` is mod release
 1.0 for NUX firmware V2.2.0.
 
+## V2.2.0-MOD1.2 (2026-11-13)
+
+- New switch SYNC: FS PER LOOP: in A+B mode, footswitch 1 works on loop 1 and footswitch 2 on
+  loop 2, as in A/B mode, instead of footswitch 1 working on the selected loop and footswitch 2
+  selecting it.
+- INHERIT DRUMS is renamed SPLIT: INHERIT DRUMS. Its setting is kept.
+- DRUMS ON STOP: each recorded loop now keeps its drums. Stopping the drums with DRUM ON/OFF
+  after stopping the loops no longer switches them off for the loop: when you start it again, its
+  drums start with it, as it last played. A recorded loop's drums change only while it plays (or
+  on the drum page).
+- Fixes an issue of the official firmware in A+B mode: a loop recorded while the other plays, with
+  the record press coming slightly late (in the first beat of the bar), played one bar off against
+  the other loop. Always on.
+- Fixes an issue of the official firmware in A/B mode: recording the second loop just as the first
+  one comes round (in its first beat) left CTRL's single press doing nothing until another
+  footswitch was pressed. Always on.
+
 ## V2.2.0-MOD1.1 (2026-11-07)
 
 - INHERIT DRUMS also passes on the drum set and the groove (variation and strength), not only the

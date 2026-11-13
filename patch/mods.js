@@ -10,8 +10,11 @@ export const MODS_BASE = 0x4e200;
 export const codeChanges = (mods) => [
   ...MENU(mods),
   ...DRUMS_ON_STOP(mods),
-  ...INHERIT_DRUMS(mods),
+  ...SPLIT_INHERIT_DRUMS(mods),
   ...DELETE_DIALOG(mods),
+  ...SYNC_FS_PER_LOOP(mods),
+  ...SYNC_REC_START(mods),
+  ...SPLIT_REC_START(mods),
   ...BOOT_SCREEN,
 ];
 
@@ -35,6 +38,9 @@ const MENU = (mods) => [
 // The 11 places where stopping a loop also stops the drums call ours instead, which stop them only
 // while DRUMS ON STOP is off. At most places the stop is followed by a call that silences the drum
 // voices: mods_drum_stop replaces both and does both. Elsewhere mods_drum_stop_only only stops them.
+// A loop starting with no other loop playing restarts the drums through ours, which in A+B SYNC
+// also apply the loop's drum on/off. The drum page's DRUM 1/2 tab sets the loop's drums on
+// through ours. (The loops keeping their drums: the record save, below.)
 const DRUMS_ON_STOP = (mods) => {
   const stopAndSilence = (at, what) => [at, [...nops(4), ...bl(at + 8, mods.mods_drum_stop)], what];
   const stopOnly = (at, what) => [at, [...bl(at, mods.mods_drum_stop_only), ...nops(2)], what];
@@ -51,16 +57,27 @@ const DRUMS_ON_STOP = (mods) => {
     stopAndSilence(0xf0fc, "loop end reached in LOOP END or ONE SHOT mode"),
     [0x107cc, nops(4), "CTRL immediate stop (its jump follows at 0x107D8)"],
     [0x107d8, bw(0x107d8, mods.mods_drum_stop), "CTRL immediate stop: jump to ours instead"],
+    [
+      0x5d3a,
+      [...bl(0x5d3a, mods.mods_drum_tab), ...bw(0x5d3e, 0x5df2), ...nops(2)],
+      "drum page, DRUM 1/2 tab with nothing playing: the loop's drums on through ours",
+    ],
+    [
+      0x10650,
+      [...bl(0x10650, mods.mods_play_drums), ...nops(2)],
+      "a loop starts alone: the drums restart through ours",
+    ],
   ];
 };
 
-// --- INHERIT DRUMS ---------------------------------------------------------------------------------
+// --- SPLIT: INHERIT DRUMS --------------------------------------------------------------------------
 // Each loop's drum settings are saved through our code, which passes the drum on/off, drum set and
 // groove on to the loops not recorded yet; a choice made on an empty loop is remembered as its own.
+// With DRUMS ON STOP and no loop playing, it keeps the drums of loops that have a recording.
 // Saving a memory slot takes each loop's drum on/off from our code.
-const INHERIT_DRUMS = (mods) => [
+const SPLIT_INHERIT_DRUMS = (mods) => [
   [0x392e, bw(0x392e, mods.mods_drum_toggle_save), "DRUM ON/OFF in A/B mode: save the loop's drums with ours"],
-  [0x9ff4, [...bw(0x9ff4, mods.mods_drum_save_tail), ...nops(1)], "end of saving a loop's drums: continue in ours"],
+  [0x9ff0, bw(0x9ff0, mods.mods_drum_save_tail), "end of saving a loop's drums: continue in ours"],
   [0x41a8, [...bl(0x41a8, mods.mods_slot_drum_on), ...nops(2)], "saving a memory slot: a loop's drum on/off from ours"],
 ];
 
@@ -69,6 +86,32 @@ const INHERIT_DRUMS = (mods) => [
 const DELETE_DIALOG = (mods) => [
   [0x2934, bl(0x2934, mods.mods_dialog_bg), "save/delete dialog: the dim around it, through ours"],
   [0x29b2, bl(0x29b2, mods.mods_dialog_bg), "save/delete dialog: its title bar, through ours"],
+];
+
+// --- SYNC: FS PER LOOP ----------------------------------------------------------------------------
+// In A+B SYNC, footswitch 1 and 2 (and an external footswitch acting as either) jump to ours, which
+// let each footswitch work on its own loop. Every update of the footswitch LEDs goes through ours,
+// which then show each footswitch's loop.
+const SYNC_FS_PER_LOOP = (mods) => [
+  [0x3800, bw(0x3800, mods.mods_sync_footswitch1), "footswitch 1 in A+B SYNC: jump to ours"],
+  [0x382c, bw(0x382c, mods.mods_sync_footswitch2), "footswitch 2 in A+B SYNC: jump to ours"],
+  [0x990a, bw(0x990a, mods.mods_sync_footswitch1), "external footswitch as footswitch 1, A+B SYNC: jump to ours"],
+  [0x992a, bw(0x992a, mods.mods_sync_footswitch2), "external footswitch as footswitch 2, A+B SYNC: jump to ours"],
+  ...[0x4ffe, 0x540a, 0x5fbc, 0x643a, 0x8e96].map((at) => [at, bl(at, mods.mods_leds), "footswitch LEDs update: ours"]),
+];
+
+// --- A+B SYNC: recording start (always on) --------------------------------------------------------
+// When a recording starts at a bar line while the other loop plays, the recording engine ends its
+// critical section through ours, which give the recording the other loop's beat at that bar line.
+const SYNC_REC_START = (mods) => [
+  [0xe2f0, bl(0xe2f0, mods.mods_rec_bar_start), "recording starts at a bar line: its first beat from ours"],
+];
+
+// --- A/B SPLIT: recording start (always on) -------------------------------------------------------
+// When a press records an empty loop at once while the other has just come round, that start ends
+// its critical section through ours, which make the new loop the active one.
+const SPLIT_REC_START = (mods) => [
+  [0x3444, bl(0x3444, mods.mods_split_rec_start), "A/B SPLIT, recording starts at once: the active loop from ours"],
 ];
 
 // --- Boot screen -----------------------------------------------------------------------------------
@@ -80,7 +123,7 @@ const BOOT_SCREEN = [
 
 // --- Pictures --------------------------------------------------------------------------------------
 // Our pictures (files in images/), added to the firmware's picture groups as the next ids.
-const ROWS = ["drums_on_stop", "inherit_drums"];
+const ROWS = ["drums_on_stop", "split_inherit_drums", "sync_fs_per_loop"];
 const STATES = ["off", "off_selected", "on", "on_selected"];
 
 export const PICTURES = [

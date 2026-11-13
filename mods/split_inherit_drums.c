@@ -1,8 +1,8 @@
-/* INHERIT DRUMS: in A/B SPLIT mode, a loop not recorded yet follows the drums: on/off, drum set and
+/* SPLIT: INHERIT DRUMS: in A/B SPLIT mode, a loop not recorded yet follows the drums: on/off, drum set and
    groove.
 
    In A/B SPLIT mode each loop has its own drum record (on/off, drum set, groove; the tempo is
-   shared), applied whenever that loop starts or records. With INHERIT DRUMS, a "fresh" loop (no
+   shared), applied whenever that loop starts or records. With the row on, a "fresh" loop (no
    recording yet, no explicit choice) follows the drums: every record save copies the on/off, drum
    set and groove into the fresh loops, so the first recording of a loop starts with the drums as
    they are. Pressing DRUM ON/OFF, or choosing another drum set or groove, while an empty loop is
@@ -12,7 +12,7 @@
    Saving a memory slot stores each loop's drum on/off as well. The firmware takes it from the
    drums playing at that moment, which is that loop's only when the save has just loaded the
    loop's record: for a loop already saved unchanged (saving the slot again), it stores the state
-   of the loop selected, so one loop's on/off ends up in the other's. With INHERIT DRUMS, in A/B SPLIT, the save takes it from the loop's own record. */
+   of the loop selected, so one loop's on/off ends up in the other's. With the row on, in A/B SPLIT, the save takes it from the loop's own record. */
 #include <stdbool.h>
 #include "mods.h"
 
@@ -26,7 +26,7 @@ static bool track_empty(unsigned t)
 
 static bool inherit(void)
 {
-    return fw_settings_mods & MODS_INHERIT_DRUMS;
+    return fw_settings_mods & MODS_SPLIT_INHERIT_DRUMS;
 }
 
 /* The explicit choices belong to the memory slot loaded: forget them when it changes. */
@@ -47,11 +47,13 @@ void mods_drum_toggle_save(unsigned t)
     fw_drum_save_track(t);
 }
 
-/* After loop t's drum record has been saved; `pattern` is the drum set and groove it had before.
-   A changed pattern counts as a choice only for the active loop: the meter page saves both
-   records, and the inactive one then just takes the active loop's pattern. */
-void mods_drum_saved(unsigned t, unsigned pattern)
+/* After loop t's drum record has been saved; `pattern` and `on` are the drum set and groove and the
+   on/off it had before (DRUMS ON STOP may put them back first). A changed pattern counts as a
+   choice only for the active loop: the meter page saves both records, and the inactive one then
+   just takes the active loop's pattern. */
+void mods_drum_saved(unsigned t, unsigned pattern, unsigned on)
 {
+    drums_keep_loop(t, pattern, on);
     check_slot();
     if (inherit() && t == fw_settings_page.track && track_empty(t)
         && fw_drum_records[t].pattern != pattern)
@@ -69,20 +71,25 @@ void mods_drum_saved(unsigned t, unsigned pattern)
 /* Called by the slot save in place of its `ldrb.w r12, [r6]; lsls.w r3, r12, #25`, which put the
    drums' audible flag (0x40 of fw_drum_flags; r6 = &fw_drum_flags) into N for the following
    `ite mi`. Returns N the same way, with r3 and r12 changed as there; r9 = the loop's record +
-   0xC, so its on/off is at [r9, #3]. Flags survive the return. */
-_Static_assert(MODS_INHERIT_DRUMS == 0x02, "the stub tests bit 1");
+   0xC, so its on/off is at [r9, #3]. Flags survive the return. The record also with DRUMS ON STOP,
+   in both loop modes: there the drums playing are often not a loop's. */
+_Static_assert(MODS_DRUMS_ON_STOP == 0x01, "the stub tests bit 0");
+_Static_assert(MODS_SPLIT_INHERIT_DRUMS == 0x02, "the stub tests bit 1");
 __attribute__((naked))
 void mods_slot_drum_on(void)
 {
     __asm volatile(
         "ldr    r3, =fw_settings_mods\n"
         "ldrb   r3, [r3]\n"
-        "lsls   r3, r3, #30\n"             /* MODS_INHERIT_DRUMS into N */
+        "lsls.w r12, r3, #31\n"           /* MODS_DRUMS_ON_STOP into N */
+        "bmi    2f\n"
+        "lsls   r3, r3, #30\n"             /* MODS_SPLIT_INHERIT_DRUMS into N */
         "bpl    1f\n"
         "ldr    r3, =fw_loop_mode\n"
         "ldrb   r3, [r3]\n"
         "cmp    r3, #1\n"                  /* A/B SPLIT */
         "bne    1f\n"
+        "2:\n"
         "ldrb.w r12, [r9, #3]\n"           /* the loop's own on/off (0 or 1) */
         "lsls.w r3, r12, #31\n"
         "bx     lr\n"
@@ -93,18 +100,24 @@ void mods_slot_drum_on(void)
         ".ltorg\n");
 }
 
-/* The end of the firmware's record save jumps here: its last instructions (store of the pattern,
-   return) moved here, then mods_drum_saved(t, old pattern), returning to the original caller. The
-   firmware addresses loop t's record through r0 = &fw_drum_flags + 16 t. */
+/* The end of the firmware's record save jumps here (from 0x9FF0): its last instructions (stores
+   of the on/off and the pattern, return) moved here, then mods_drum_saved(t, old pattern, old
+   on/off), returning to the original caller. The firmware addresses loop t's record through
+   r0 = &fw_drum_flags + 16 t, its on/off through r1 = r0 + 0x49 (at +2), with r2 = &fw_drum_flags
+   and r3 = the new on/off. */
 __attribute__((naked))
 void mods_drum_save_tail(void)
 {
     __asm volatile(
-        "ldrh  r1, [r0, #0x44]\n"           /* the pattern before the save */
+        "ldrb  r12, [r1, #2]\n"            /* the on/off before the save */
+        "strb  r3, [r1, #2]\n"
+        "ldrh  r1, [r0, #0x44]\n"          /* the pattern before the save */
+        "ldrh  r2, [r2, #0x34]\n"
         "strh  r2, [r0, #0x44]\n"
         "pop   {r4, r5, r6, r7, lr}\n"
-        "ldr   r2, =fw_drum_flags\n"
-        "subs  r0, r0, r2\n"
+        "mov   r2, r12\n"
+        "ldr   r3, =fw_drum_flags\n"
+        "subs  r0, r0, r3\n"
         "lsrs  r0, r0, #4\n"                /* t = (r0 - &fw_drum_flags) / 16 */
         "b.w   mods_drum_saved\n"
         ".ltorg\n");

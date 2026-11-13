@@ -409,6 +409,13 @@ section {
 .mod dd:last-child {
   margin-bottom: 0;
 }
+.mod p {
+  grid-row: span 4; /* the rows a card's dl takes, so it doesn't stretch a neighbour's */
+  align-self: start;
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
 /* The patcher, right under the screens in the same body colours, without a seam: the screen
    above, the box below read as one pedal. Its console dark like the pedal's screen and also the
    drop area, dark ink on the yellow. */
