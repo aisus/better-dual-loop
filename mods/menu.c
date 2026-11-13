@@ -12,7 +12,7 @@
 #define MODS_TITLE_ID    0x75   /* our pictures in group 0x12 (patch/mods.js adds them) */
 #define MODS_VERSION_ID  0x76   /* the release, at the right end of the title bar */
 #define MODS_ROW_ID      0x77   /* rows: 4 pictures each (off, off selected, on, on selected) */
-#define ROW_Y            100    /* first row, below the 60-pixel title bar */
+#define ROW_Y            82     /* first row: 3 rows centred under the 60-pixel title bar */
 #define ROW_PITCH        96
 #define VERSION_X        (-40)  /* the release in the title bar: right end, */
 #define VERSION_Y        23     /* centred on the title's capitals */

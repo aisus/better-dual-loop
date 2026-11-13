@@ -26,6 +26,8 @@ fw_ui_objs = 0x2000EA60;
 fw_list_scroll = 0x2000F4E4;
 fw_exp_mode = 0x2000F3B0;
 fw_settings_mods = 0x20279187;
+fw_screen = 0x20001F90;
+fw_main_screen = 0x20001FA0;
 
 /* Drums and loops */
 fw_drum_silence_voices = 0x0001A2A9;
@@ -35,6 +37,15 @@ fw_drum_records = 0x2000EE5C;
 fw_tracks = 0x2000B2A8;
 fw_memory_slot = 0x20279168;
 fw_loop_mode = 0x20002F10;
+fw_critical_exit = 0x0001A365;
+
+/* Footswitches and their LEDs */
+fw_sync_footswitch = 0x00002FCD;
+fw_sync_select = 0x0000380D;
+fw_leds = 0x00004CC9;
+fw_set_led = 0x0001D04D;
+fw_looper_state = 0x20002F14;
+fw_led_blink = 0x2000F6C4;
 
 /* Pictures */
 fw_res_group = 0x0000B775;

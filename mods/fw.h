@@ -40,7 +40,8 @@ void lv_bar_set_start_value(lv_obj_t *bar, int32_t value, int anim);
 
 /* --- The settings menu -------------------------------------------------------------------------- */
 
-/* A key or knob event: a knob turned by `value` steps (negative: to the left), or a press (0). */
+/* A key or knob event: a knob turned by `value` steps (negative: to the left), or a press (0). For
+   footswitches 1 and 2, `value` is the kind of press (0 a single press, others for a hold). */
 typedef struct {
     uint8_t key;
     uint8_t _pad;
@@ -59,7 +60,8 @@ typedef struct fw_msg {
 enum { UI_CREATE = 0, UI_DESTROY = 1, UI_UPDATE = 2 };
 
 typedef struct {
-    uint8_t _0[5];
+    uint8_t sync_track;                         /* A+B SYNC: footswitch 1's loop (footswitch 2 flips it) */
+    uint8_t _0[4];
     uint8_t track;                              /* the active loop (A/B SPLIT), set by the drums */
     uint8_t _1;
     uint8_t item;                               /* the page (tile) chosen */
@@ -79,6 +81,8 @@ extern lv_obj_t *fw_ui_objs[];                  /* the current screen's objects 
 extern uint16_t fw_list_scroll;                 /* the first tile position shown */
 extern volatile uint8_t fw_exp_mode;            /* & 7 == 7: tile 9 hidden, else tile 10 */
 extern volatile uint8_t fw_settings_mods;       /* a spare byte saved with the settings */
+extern void *volatile fw_screen;                /* the screen shown: fw_main_screen on the looper's */
+extern uint8_t fw_main_screen[];
 
 /* --- Drums and loops ---------------------------------------------------------------------------- */
 
@@ -92,15 +96,31 @@ typedef struct {
 } fw_drum_record;                               /* a loop's drum settings */
 
 typedef struct {
-    uint8_t _0[0x298];
+    uint8_t _0[0x10];
+    uint32_t beat_len;                          /* samples per beat */
+    uint8_t _1[0x298 - 0x14];
     uint32_t audio;                             /* the recording; 0 while the loop is empty */
-    uint8_t _1[0x4E8 - 0x29C];
+    uint8_t _2[0x4B4 - 0x29C];
+    uint32_t beat;                              /* playing: the beat, from the loop's start */
+    uint32_t beat_pos;                          /* samples into that beat */
+    uint8_t _3[0x4E0 - 0x4BC];
+    uint32_t length;                            /* beats */
+    uint8_t _4[0x4E8 - 0x4E4];
     uint32_t flags;
-    uint8_t _2[0x538 - 0x4EC];
+    uint8_t _5[0x50C - 0x4EC];
+    uint32_t rec_start;                         /* A+B SYNC: the beat a new recording starts on */
+    uint8_t _6[0x518 - 0x510];
+    uint32_t rec_samples;                       /* samples recorded */
+    uint8_t _7[0x538 - 0x51C];
 } fw_track;
+_Static_assert(sizeof(fw_track) == 0x538, "fw_track: one loop, as the firmware's");
 
 #define FW_TRACK_RECORDING 0x01                 /* fw_track flags */
-#define FW_DRUMS_ON 0x01                        /* fw_drum_flags */
+#define FW_TRACK_REC_ENDING 0x08                /* recording, to end at the next bar */
+#define FW_TRACK_PLAYING 0x100
+#define FW_TRACK_DUBBING 0x10000
+#define FW_DRUMS_ON 0x01                        /* fw_drum_flags: playing */
+#define FW_DRUMS_AUDIBLE 0x40                   /* heard (both bits: the drums sound) */
 
 void fw_drum_silence_voices(void);              /* cuts the drum sounds playing */
 void fw_drum_save_track(unsigned t);            /* saves the drums' state to loop t's record */
@@ -109,6 +129,19 @@ extern volatile fw_drum_record fw_drum_records[FW_TRACKS];
 extern volatile fw_track fw_tracks[FW_TRACKS];
 extern volatile int16_t fw_memory_slot;         /* the memory slot loaded */
 extern volatile uint8_t fw_loop_mode;           /* 0 A+B SYNC, 1 A/B SPLIT, 2 GIG */
+void fw_critical_exit(void);                    /* ends a critical section (nested) */
+
+/* --- Footswitches and their LEDs ---------------------------------------------------------------- */
+
+int fw_sync_footswitch(const fw_event *e);      /* A+B SYNC: footswitch 1 on loop sync_track */
+int fw_sync_select(const fw_event *e);          /* A+B SYNC: footswitch 2, flips sync_track */
+void fw_leds(void);                             /* sets both footswitch LEDs from the loops */
+void fw_set_led(unsigned led, uint32_t rgb);    /* FW_LED_1, FW_LED_2; 0xRRGGBB, 0 off */
+extern volatile uint32_t fw_looper_state;
+extern volatile uint8_t fw_led_blink;           /* bit 0: the blink phase */
+
+#define FW_LED_1 0x11                           /* footswitch 1's LED, 0x12 footswitch 2's */
+#define FW_SWITCH_PENDING 0x100                 /* fw_looper_state: A/B SPLIT, the other loop is next */
 
 /* --- Pictures ----------------------------------------------------------------------------------- */
 

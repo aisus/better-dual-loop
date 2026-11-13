@@ -1,7 +1,7 @@
 {
-  "version": "V2.2.0-MOD1.1",
+  "version": "V2.2.0-MOD1.2",
   "official": "V2.2.0",
   "input_sha256": "996a3fe71687ed85ba7b50e7484efcad4b3fc7d7208bb33d60509933ea3e94fa",
-  "mods_sha256": "a2488a826c75c2d2d3d8d0bd04395018f872eba8bfeceb1307069eead3acf5a6",
-  "output_sha256": "38d6bf6a37f7d210b16ffc2ca05028a78265630b78af4b8b31dc00939626b2de"
+  "mods_sha256": "04fb092a0d49dfa6178ac06d6aecd8a20c486b3f45129db2014e9838ed3c0d08",
+  "output_sha256": "26d04c2073459cf49495470bf01c8a82b62ae8a225e3ccd16f5075c9f4a6f187"
 }
