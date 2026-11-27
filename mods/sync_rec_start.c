@@ -21,10 +21,10 @@
 void mods_rec_bar_start(volatile uint8_t *fields)
 {
     volatile fw_track *t = (volatile fw_track *)(fields - ENGINE_FIELDS);
-    volatile fw_track *other = &fw_tracks[t == &fw_tracks[0]];
+    volatile fw_track *other = &fw_tracks[!fw_track_index(t)];
     uint32_t beat_len = other->beat_len, length = other->length;
 
-    if (fw_loop_mode == 0 && (other->flags & FW_TRACK_PLAYING) && beat_len && length) {
+    if (fw_loop_mode == FW_LOOP_SYNC && (other->flags & FW_TRACK_PLAYING) && beat_len && length) {
         uint32_t beat, at;
         do {                                    /* beat and position from the same audio block */
             beat = other->beat;

@@ -107,6 +107,7 @@ const HOOKS = [
   "mods_drum_toggle_save",
   "mods_drum_save_tail",
   "mods_slot_drum_on",
+  "mods_slot_load_track",
   "mods_play_drums",
   "mods_drum_tab",
   "mods_dialog_bg",
@@ -116,6 +117,8 @@ const HOOKS = [
   "mods_leds",
   "mods_rec_bar_start",
   "mods_split_rec_start",
+  "mods_boot_end",
+  "mods_part_load",
 ];
 const SYM = HOOKS.map((name, i) => `${(MODS_BASE + 8 * i).toString(16).padStart(8, "0")} T ${name}`).join("\n");
 
@@ -221,15 +224,15 @@ test("patch: our changes, code and pictures, in whole blocks", async () => {
   assert.deepEqual(fw.code.subarray(MODS_BASE, MODS_BASE + 64), new Uint8Array(64).fill(0xab));
   const pics = groups(fw.resources);
   assert.deepEqual(decode(fw.resources, pics[3][17]), [...decode(LOGO), ...decode(STRIP)]);
-  assert.equal(pics[0x12].length, 0x75 + 14);
+  assert.equal(pics[0x12].length, 0x75 + 32);
   // The pins: only the official input, only the released output.
   release.output_sha256 = await sha256(out);
   assert.deepEqual(await patch(input, files(), release), out);
   await assert.rejects(patch(input, files(), { ...release, output_sha256: "1" }), /not the released/);
   const other = input.slice();
   other[HEADER_SIZE] ^= 1;
-  await assert.rejects(patch(other, files(), release), /not the official V2.2.0 firmware/);
-  await assert.rejects(patch(out, files(), release), /already the modded/);
+  await assert.rejects(patch(other, files(), release), /Not the official V2\.2\.0 firmware/);
+  await assert.rejects(patch(out, files(), release), /is the modded/);
 });
 
 // --- the committed release ------------------------------------------------------------------------

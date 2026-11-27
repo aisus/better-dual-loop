@@ -1,10 +1,18 @@
-// ESLint's recommended rules; Prettier does the formatting (npm run lint checks both).
+// ESLint's, typescript-eslint's and Vue's recommended rules; Prettier does the formatting (npm run
+// lint checks both, vue-tsc the types: npm run typecheck).
 import js from "@eslint/js";
+import prettier from "eslint-config-prettier";
+import vue from "eslint-plugin-vue";
 import globals from "globals";
+import ts from "typescript-eslint";
 
 export default [
   { ignores: ["build/"] },
   js.configs.recommended,
+  ...ts.configs.recommended.map((config) => ({ ...config, files: ["**/*.ts", "**/*.vue"] })),
+  ...vue.configs["flat/recommended"],
+  { files: ["**/*.vue"], languageOptions: { parserOptions: { parser: ts.parser } } },
+  prettier,
   {
     rules: {
       curly: ["error", "multi-line"], // braces when the body is on its own line
@@ -12,6 +20,9 @@ export default [
       "one-var": ["error", "never"], // one declaration per statement
     },
   },
-  { files: ["web/**", "patch/**"], languageOptions: { globals: globals.browser } },
-  { files: ["build.mjs", "dev.mjs", "eslint.config.js", "tests/**"], languageOptions: { globals: globals.node } },
+  { files: ["web/**", "patch/**", "drum/**"], languageOptions: { globals: globals.browser } },
+  {
+    files: ["vite.config.js", "eslint.config.js", "tests/**"],
+    languageOptions: { globals: globals.node },
+  },
 ];

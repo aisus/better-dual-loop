@@ -1,6 +1,8 @@
-// The NUX zip: take the firmware image out of it, and pack the same zip again with the modded image
-// in place of the official one. JSZip does the zip format; this file decides what goes where.
+// The zips: take the firmware image out of NUX's, pack the same zip again with the modded image in
+// place of the official one, make a zip of files. JSZip does the zip format; this file decides what
+// goes where.
 import JSZip from "jszip";
+import { USE_NUX } from "../patch/index.js";
 
 // A zip starts with a local file header: "PK\x03\x04".
 const isZip = (bytes) => bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 3 && bytes[3] === 4;
@@ -15,15 +17,22 @@ function isImage(entry) {
 // Returns {image, zip}; `zip` ({archive, bin}, null for a plain .bin) is what repackZip needs.
 export async function readInput(bytes) {
   if (!isZip(bytes)) return { image: bytes, zip: null };
-  const archive = await JSZip.loadAsync(bytes, { checkCRC32: true });
-  const bins = Object.values(archive.files).filter(isImage);
-  if (bins.length !== 1) {
-    throw new Error(
-      `The zip holds ${bins.length} .bin files, expected exactly one. ` +
-        "Use the zip as downloaded from NUX, or the .bin from it.",
-    );
+  let archive;
+  try {
+    archive = await JSZip.loadAsync(bytes, { checkCRC32: true });
+  } catch (e) {
+    throw new Error(`This zip can't be read.\n${USE_NUX}`, { cause: e });
   }
+  const bins = Object.values(archive.files).filter(isImage);
+  if (bins.length !== 1) throw new Error(`The zip has ${bins.length} .bin files, not one.\n${USE_NUX}`);
   return { image: await bins[0].async("uint8array"), zip: { archive, bin: bins[0] } };
+}
+
+// A zip of {name, bytes} files.
+export function makeZip(files) {
+  const out = new JSZip();
+  for (const { name, bytes } of files) out.file(name, bytes);
+  return out.generateAsync({ type: "uint8array", compression: "DEFLATE" });
 }
 
 // The user's zip again with `image` in place of its .bin. Every entry keeps its contents, date and

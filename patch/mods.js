@@ -15,6 +15,7 @@ export const codeChanges = (mods) => [
   ...SYNC_FS_PER_LOOP(mods),
   ...SYNC_REC_START(mods),
   ...SPLIT_REC_START(mods),
+  ...DRUM_PATTERNS(mods),
   ...BOOT_SCREEN,
 ];
 
@@ -74,11 +75,17 @@ const DRUMS_ON_STOP = (mods) => {
 // Each loop's drum settings are saved through our code, which passes the drum on/off, drum set and
 // groove on to the loops not recorded yet; a choice made on an empty loop is remembered as its own.
 // With DRUMS ON STOP and no loop playing, it keeps the drums of loops that have a recording.
-// Saving a memory slot takes each loop's drum on/off from our code.
+// Saving a memory slot takes each loop's drum on/off from our code; loading one forgets the choices.
 const SPLIT_INHERIT_DRUMS = (mods) => [
   [0x392e, bw(0x392e, mods.mods_drum_toggle_save), "DRUM ON/OFF in A/B mode: save the loop's drums with ours"],
   [0x9ff0, bw(0x9ff0, mods.mods_drum_save_tail), "end of saving a loop's drums: continue in ours"],
   [0x41a8, [...bl(0x41a8, mods.mods_slot_drum_on), ...nops(2)], "saving a memory slot: a loop's drum on/off from ours"],
+  // Loading a memory slot restores each loop's drum record: through ours, which forget the choices.
+  ...[0x4552, 0x4572, 0xde5c, 0x1164e, 0x1166e].map((at) => [
+    at,
+    bl(at, mods.mods_slot_load_track),
+    "loading a memory slot, a loop's drum record: through ours",
+  ]),
 ];
 
 // --- Delete dialog (always on) ---------------------------------------------------------------------
@@ -114,6 +121,14 @@ const SPLIT_REC_START = (mods) => [
   [0x3444, bl(0x3444, mods.mods_split_rec_start), "A/B SPLIT, recording starts at once: the active loop from ours"],
 ];
 
+// --- Drum patterns (always on) ---------------------------------------------------------------------
+// At the end of a normal boot, ours read the Drum patterns page's file from the pedal's drive. The drum
+// clock loads each part through ours, which put the user's part over the stock one.
+const DRUM_PATTERNS = (mods) => [
+  [0x2080, bl(0x2080, mods.mods_boot_end), "end of the boot: through ours, which read the drum patterns file"],
+  [0xa256, bl(0xa256, mods.mods_part_load), "drum clock, a part loads: through ours (the user's part)"],
+];
+
 // --- Boot screen -----------------------------------------------------------------------------------
 // The NUX logo moves up and shows picture 3/17 instead of 3/14: the logo with the release lines.
 const BOOT_SCREEN = [
@@ -123,7 +138,9 @@ const BOOT_SCREEN = [
 
 // --- Pictures --------------------------------------------------------------------------------------
 // Our pictures (files in images/), added to the firmware's picture groups as the next ids.
-const ROWS = ["drums_on_stop", "split_inherit_drums", "sync_fs_per_loop"];
+// The rows by bit; then the two step rows dimmed (INHERIT DRUMS off), then the MODS page's scroll bar.
+const ROWS = ["drums_on_stop", "split_inherit_drums", "sync_fs_per_loop", "strength_step", "variation_step"];
+const DIM_ROWS = ["strength_step_dim", "variation_step_dim"];
 const STATES = ["off", "off_selected", "on", "on_selected"];
 
 export const PICTURES = [
@@ -131,12 +148,14 @@ export const PICTURES = [
   { group: 0x11, id: 36, file: "mods_tile.bmp" },
   { group: 0x11, id: 37, file: "mods_tile_selected.bmp" },
   // Page titles and rows, group 0x12: the MODS page's title, the release shown at its right end,
-  // and four pictures per row (row r is bit r of the MODS setting).
+  // four pictures per row (row r is bit r of the MODS setting), the dimmed steps, the scroll bar.
   { group: 0x12, id: 0x75, file: "mods_page_title.bmp" },
   { group: 0x12, id: 0x76, file: "mods_page_release.bmp" },
-  ...ROWS.flatMap((row, r) =>
+  ...[...ROWS, ...DIM_ROWS].flatMap((row, r) =>
     STATES.map((state, s) => ({ group: 0x12, id: 0x77 + 4 * r + s, file: `${row}_${state}.bmp` })),
   ),
+  { group: 0x12, id: 0x93, file: "scroll_track.bmp" },
+  { group: 0x12, id: 0x94, file: "scroll_thumb.bmp" },
   // Boot screen, group 3: NUX's logo (3/14) with our release lines stacked under it.
   { group: 3, id: 17, file: "boot_release_lines.bmp", under: 14 },
 ];

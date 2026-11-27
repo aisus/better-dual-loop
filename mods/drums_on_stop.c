@@ -16,13 +16,12 @@
    The drum page's DRUM 1/2 tab sets a loop's on/off outside the save, so it is kept there too.
    A+B SYNC applies no record when a loop starts, so there the start applies it, as A/B SPLIT
    does. */
-#include <stdbool.h>
 #include "mods.h"
 
 /* Where the firmware stops the drums and cuts their sounds. */
 void mods_drum_stop(void)
 {
-    if (!(fw_settings_mods & MODS_DRUMS_ON_STOP)) {
+    if (!mods_on(MODS_DRUMS_ON_STOP)) {
         fw_drum_flags &= ~FW_DRUMS_ON;
         fw_drum_silence_voices();
     }
@@ -31,7 +30,7 @@ void mods_drum_stop(void)
 /* Where it only stops them: the hits sounding ring out. */
 void mods_drum_stop_only(void)
 {
-    if (!(fw_settings_mods & MODS_DRUMS_ON_STOP))
+    if (!mods_on(MODS_DRUMS_ON_STOP))
         fw_drum_flags &= ~FW_DRUMS_ON;
 }
 
@@ -45,7 +44,7 @@ static bool loop_active(void)
 
 void drums_keep_loop(unsigned t, unsigned pattern, unsigned on)
 {
-    if (!(fw_settings_mods & MODS_DRUMS_ON_STOP) || fw_tracks[t].audio == 0 || loop_active())
+    if (!mods_on(MODS_DRUMS_ON_STOP) || fw_tracks[t].audio == 0 || loop_active())
         return;
     fw_drum_records[t].on = on;
     if (fw_screen == fw_main_screen)
@@ -59,8 +58,7 @@ void drums_keep_loop(unsigned t, unsigned pattern, unsigned on)
 void mods_drum_tab(void)
 {
     unsigned t = fw_settings_page.track;
-
-    if (!(fw_settings_mods & MODS_DRUMS_ON_STOP) || fw_tracks[t].audio == 0)
+    if (!mods_on(MODS_DRUMS_ON_STOP) || fw_tracks[t].audio == 0)
         fw_drum_records[t].on = 1;
 }
 
@@ -69,9 +67,9 @@ void mods_drum_tab(void)
 __attribute__((used)) static void play_drums(volatile fw_track *t)
 {
     fw_drum_flags |= FW_DRUMS_ON;
-    if (!(fw_settings_mods & MODS_DRUMS_ON_STOP) || fw_loop_mode != 0)
+    if (!mods_on(MODS_DRUMS_ON_STOP) || fw_loop_mode != FW_LOOP_SYNC)
         return;
-    if (fw_drum_records[t != &fw_tracks[0]].on) {
+    if (fw_drum_records[fw_track_index(t)].on) {
         fw_drum_flags |= FW_DRUMS_AUDIBLE;
     } else if (fw_drum_flags & FW_DRUMS_AUDIBLE) {
         fw_drum_flags &= ~FW_DRUMS_AUDIBLE;

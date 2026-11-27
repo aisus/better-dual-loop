@@ -1,6 +1,6 @@
 /* The MODS page: a tile after RESET in the settings menu, and its page of switches, one row per
-   mod. */
-#include <stdbool.h>
+   mod. Three rows show at a time; the list moves a row when the cursor passes its edge, with a
+   scroll bar beside it, as the firmware's lists do. */
 #include "mods.h"
 
 #define RESET_ITEM       12     /* NUX's last settings page */
@@ -11,9 +11,17 @@
 #define TEXT_GROUP       0x12
 #define MODS_TITLE_ID    0x75   /* our pictures in group 0x12 (patch/mods.js adds them) */
 #define MODS_VERSION_ID  0x76   /* the release, at the right end of the title bar */
-#define MODS_ROW_ID      0x77   /* rows: 4 pictures each (off, off selected, on, on selected) */
+#define MODS_ROW_ID      0x77   /* rows by bit: 4 pictures each (off, off selected, on, on selected) */
+#define DIM_ROW_ID       0x8B   /* the step rows dimmed (INHERIT DRUMS off): 4 each */
+#define FIRST_STEP_BIT   3      /* MODS_STEP_STRENGTH, then MODS_STEP_VARIATION */
+#define TRACK_ID         0x93   /* the scroll bar: its track and its thumb */
+#define THUMB_ID         0x94
 #define ROW_Y            82     /* first row: 3 rows centred under the 60-pixel title bar */
 #define ROW_PITCH        96
+#define ROWS_VISIBLE     3
+#define BAR_X            259    /* the scroll bar, right of the rows (490 wide, centred) */
+#define BAR_Y            (ROW_Y + 8)
+#define BAR_TRAVEL       (264 - 158)     /* the track minus the thumb, in pixels */
 #define VERSION_X        (-40)  /* the release in the title bar: right end, */
 #define VERSION_Y        23     /* centred on the title's capitals */
 #define VERSION_GREY     0x8C71 /* RGB565 of (140, 140, 140) */
@@ -21,14 +29,20 @@
 #define SLIDER_THUMB     30
 
 /* The screen objects in fw_ui_objs: [0] the screen; on the tile list [1..4] the tiles and [5]
-   the scroll bar; on the MODS page [1] the title, [2] the release and [3..] the rows (the
-   firmware clears 35 slots when a page closes). */
+   the scroll bar; on the MODS page [1] the title, [2] the release, [3..5] the rows shown and
+   [6], [7] the scroll bar's track and thumb (the firmware clears 35 slots when a page closes). */
 #define OBJ_SCREEN       0
 #define OBJ_TILES        1
 #define OBJ_SLIDER       5
 #define OBJ_TITLE        1
 #define OBJ_VERSION      2
 #define OBJ_ROWS         3
+#define OBJ_TRACK        (OBJ_ROWS + ROWS_VISIBLE)
+#define OBJ_THUMB        (OBJ_TRACK + 1)
+
+/* The rows top to bottom, by their bits: the steps under INHERIT DRUMS. */
+static const uint8_t ROW_BITS[MODS_ROWS] = {0, 1, 3, 4, 2};
+static uint16_t rows_top;               /* the first row shown */
 
 /* One of our pictures (from the firmware's own resources: the external pack that fw_res_image()
    can switch to does not have them). */
@@ -97,6 +111,7 @@ static void create_page(const fw_msg *m)
     fw_msg reset = *m;
     reset.item = RESET_ITEM;            /* the screen and title bar as for RESET, then our title */
     fw_settings_draw(&reset);
+    rows_top = 0;
     lv_obj_set_style_text_font(objs[OBJ_TITLE], picture_font(own_image(TEXT_GROUP, MODS_TITLE_ID)),
                                LV_PART_MAIN);
     /* The release: a label showing its picture, like the title (any text shows the one glyph). */
@@ -107,19 +122,44 @@ static void create_page(const fw_msg *m)
     lv_obj_set_style_text_font(version, picture_font(own_image(TEXT_GROUP, MODS_VERSION_ID)), LV_PART_MAIN);
 }
 
-/* One picture per row, by the row's state and whether it is selected. */
+_Static_assert(MODS_STEP_STRENGTH == 1u << FIRST_STEP_BIT, "the dimmed rows follow the step bits");
+
+static bool is_step(unsigned bit)
+{
+    return (1u << bit) & (MODS_STEP_STRENGTH | MODS_STEP_VARIATION);
+}
+
+static unsigned row_on(unsigned bit)
+{
+    return fw_settings_mods >> bit & 1;
+}
+
+/* A picture at a place on the page, made once. */
+static lv_obj_t *picture(unsigned slot, lv_coord_t x, lv_coord_t y)
+{
+    lv_obj_t **img = &fw_ui_objs[slot];
+    if (!*img)
+        *img = lv_img_create(fw_ui_objs[OBJ_SCREEN]);
+    lv_obj_align(*img, LV_ALIGN_TOP_MID, x, y);
+    return *img;
+}
+
+/* The rows shown, one picture each by the row's state and whether it is selected (the steps
+   dimmed while INHERIT DRUMS is off), and the scroll bar. */
 static void draw_rows(unsigned cursor)
 {
-    lv_obj_t **objs = fw_ui_objs;
-    for (unsigned row = 0; row < MODS_ROWS; row++) {
-        lv_obj_t **img = &objs[OBJ_ROWS + row];
-        if (!*img) {
-            *img = lv_img_create(objs[OBJ_SCREEN]);
-            lv_obj_align(*img, LV_ALIGN_TOP_MID, 0, ROW_Y + ROW_PITCH * row);
-        }
-        unsigned state = (fw_settings_mods >> row & 1) * 2 + (cursor == row);
-        lv_img_set_src(*img, fw_img_dsc(own_image(TEXT_GROUP, MODS_ROW_ID + 4 * row + state)));
+    fw_scroll(cursor, &rows_top, MODS_ROWS, ROWS_VISIBLE);
+    bool inherit = mods_on(MODS_SPLIT_INHERIT_DRUMS);
+    for (unsigned k = 0; k < ROWS_VISIBLE; k++) {
+        unsigned row = rows_top + k, bit = ROW_BITS[row];
+        unsigned state = row_on(bit) * 2 + (cursor == row);
+        unsigned id = is_step(bit) && !inherit ? DIM_ROW_ID + 4 * (bit - FIRST_STEP_BIT) : MODS_ROW_ID + 4 * bit;
+        lv_img_set_src(picture(OBJ_ROWS + k, 0, ROW_Y + ROW_PITCH * k),
+                       fw_img_dsc(own_image(TEXT_GROUP, id + state)));
     }
+    lv_img_set_src(picture(OBJ_TRACK, BAR_X, BAR_Y), fw_img_dsc(own_image(TEXT_GROUP, TRACK_ID)));
+    lv_coord_t y = BAR_Y + BAR_TRAVEL * rows_top / (MODS_ROWS - ROWS_VISIBLE);
+    lv_img_set_src(picture(OBJ_THUMB, BAR_X, y), fw_img_dsc(own_image(TEXT_GROUP, THUMB_ID)));
 }
 
 /* Settings page callback: the MODS page; other pages go to the firmware's. */
@@ -151,20 +191,26 @@ static void post_update(void)
     fw_ui_post(&m, sizeof m);
 }
 
+/* Switches the selected row on or off. A step switched on switches INHERIT DRUMS on: it acts only
+   with it. */
+static void set_row(bool on)
+{
+    unsigned bit = ROW_BITS[fw_settings_page.cursor];
+    if (!on)
+        fw_settings_mods &= (uint8_t)~(1u << bit);
+    else
+        fw_settings_mods |= 1u << bit | (is_step(bit) ? MODS_SPLIT_INHERIT_DRUMS : 0);
+    post_update();
+}
+
 /* Settings PARA knob: on the MODS page it switches the selected row on (right) or off (left),
    like the MIDI page's switches. */
 int mods_settings_para_knob(const fw_event *e)
 {
     if (!on_mods_page())
         return fw_settings_para_knob(e);
-    if (fw_settings_page.cursor >= MODS_ROWS)
-        return 0;
-    uint8_t bit = 1u << fw_settings_page.cursor;
-    if (e->value > 0)
-        fw_settings_mods |= bit;
-    else if (e->value < 0)
-        fw_settings_mods &= (uint8_t)~bit;
-    post_update();
+    if (fw_settings_page.cursor < MODS_ROWS && e->value != 0)
+        set_row(e->value > 0);
     return 0;
 }
 
@@ -184,9 +230,7 @@ int mods_settings_para_press(const fw_event *e)
 {
     if (!on_mods_page())
         return fw_settings_para_press(e);
-    if (e->value == 0 && fw_settings_page.cursor < MODS_ROWS) {
-        fw_settings_mods ^= 1u << fw_settings_page.cursor;
-        post_update();
-    }
+    if (e->value == 0 && fw_settings_page.cursor < MODS_ROWS)
+        set_row(!row_on(ROW_BITS[fw_settings_page.cursor]));
     return 0;
 }

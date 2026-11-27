@@ -9,11 +9,16 @@
    selected is an explicit choice for that loop: it keeps all of its drums until it has been
    recorded.
 
+   STRENGTH +1 and VARIATION +1 (rows under it): once the other loop has a recording (or is
+   recording), the fresh loop gets its groove one cell up, one cell right, or both: the second loop
+   recorded lifts, as a chorus after a verse. A step past the grid's edge stays at the edge; no drum
+   set, no step. While both loops are empty they share the same groove, as without the steps.
+
    Saving a memory slot stores each loop's drum on/off as well. The firmware takes it from the
    drums playing at that moment, which is that loop's only when the save has just loaded the
    loop's record: for a loop already saved unchanged (saving the slot again), it stores the state
-   of the loop selected, so one loop's on/off ends up in the other's. With the row on, in A/B SPLIT, the save takes it from the loop's own record. */
-#include <stdbool.h>
+   of the loop selected, so one loop's on/off ends up in the other's. With the row on, in A/B
+   SPLIT, the save takes it from the loop's own record. */
 #include "mods.h"
 
 static uint8_t explicit_tracks;             /* bit t: empty track t has an explicit drum choice */
@@ -24,12 +29,22 @@ static bool track_empty(unsigned t)
     return fw_tracks[t].audio == 0 && !(fw_tracks[t].flags & FW_TRACK_RECORDING);
 }
 
-static bool inherit(void)
+/* The groove one cell further in the directions switched on: bits 3-2 of the groove byte are the
+   strength - 1, bits 1-0 the variation - 1 (part = 4 x (strength - 1) + (variation - 1)). */
+static unsigned stepped(unsigned pattern)
 {
-    return fw_settings_mods & MODS_SPLIT_INHERIT_DRUMS;
+    unsigned set = pattern & 0xFF, strength = pattern >> 10 & 3, variation = pattern >> 8 & 3;
+    if (set == 0)
+        return pattern;
+    if (mods_on(MODS_STEP_STRENGTH) && strength < 3)
+        strength++;
+    if (mods_on(MODS_STEP_VARIATION) && variation < 3)
+        variation++;
+    return set | strength << 10 | variation << 8;
 }
 
-/* The explicit choices belong to the memory slot loaded: forget them when it changes. */
+/* The explicit choices belong to the memory slot loaded: forget them when it changes, and when a
+   slot is loaded (mods_slot_load_track), even the same one again. */
 static void check_slot(void)
 {
     if (explicit_slot != fw_memory_slot) {
@@ -38,32 +53,43 @@ static void check_slot(void)
     }
 }
 
+/* Loading a memory slot (by the knob, a MIDI program change or the change waiting for the loops'
+   end; not the re-load after a save) restores loop t's record from it: what was chosen before is
+   gone, so is the mark. */
+uint64_t mods_slot_load_track(int slot, unsigned t, uint32_t r2, uint32_t r3)
+{
+    explicit_tracks &= ~(1u << t);
+    return fw_slot_load_track(slot, t, r2, r3);
+}
+
 /* DRUM ON/OFF in A/B SPLIT mode saves the active loop's record through here. */
 void mods_drum_toggle_save(unsigned t)
 {
     check_slot();
-    if (inherit() && track_empty(t))
+    if (mods_on(MODS_SPLIT_INHERIT_DRUMS) && track_empty(t))
         explicit_tracks |= 1u << t;
     fw_drum_save_track(t);
 }
 
-/* After loop t's drum record has been saved; `pattern` and `on` are the drum set and groove and the
-   on/off it had before (DRUMS ON STOP may put them back first). A changed pattern counts as a
+/* After loop t's drum record has been saved, with the drum set and groove and the on/off it had
+   before (DRUMS ON STOP may put them back first). A changed pattern counts as a
    choice only for the active loop: the meter page saves both records, and the inactive one then
    just takes the active loop's pattern. */
-void mods_drum_saved(unsigned t, unsigned pattern, unsigned on)
+void mods_drum_saved(unsigned t, unsigned old_pattern, unsigned old_on)
 {
-    drums_keep_loop(t, pattern, on);
+    drums_keep_loop(t, old_pattern, old_on);
     check_slot();
-    if (inherit() && t == fw_settings_page.track && track_empty(t)
-        && fw_drum_records[t].pattern != pattern)
+    bool inherit = mods_on(MODS_SPLIT_INHERIT_DRUMS);
+    if (inherit && t == fw_settings_page.track && track_empty(t)
+        && fw_drum_records[t].pattern != old_pattern)
         explicit_tracks |= 1u << t;
     for (unsigned u = 0; u < FW_TRACKS; u++) {
         if (!track_empty(u)) {
             explicit_tracks &= ~(1u << u);
-        } else if (u != t && inherit() && !(explicit_tracks >> u & 1)) {
+        } else if (u != t && inherit && !(explicit_tracks >> u & 1)) {
+            unsigned pattern = fw_drum_records[t].pattern;
             fw_drum_records[u].on = fw_drum_records[t].on;
-            fw_drum_records[u].pattern = fw_drum_records[t].pattern;
+            fw_drum_records[u].pattern = track_empty(t) ? pattern : stepped(pattern);
         }
     }
 }
