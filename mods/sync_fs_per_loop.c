@@ -7,22 +7,16 @@
    as before, on that footswitch's loop. The LEDs then show each footswitch's own loop, as in A/B
    SPLIT, instead of the selected loop and the selection. The firmware calls ours only in A+B SYNC;
    the other modes already work this way. */
-#include <stdbool.h>
 #include "mods.h"
 
 #define RED     0xFF0000
 #define GREEN   0x00FF00
 #define YELLOW  0xFFFF00
 
-static bool direct(void)
-{
-    return fw_settings_mods & MODS_SYNC_FS_PER_LOOP;
-}
-
 /* Footswitch 1 in A+B SYNC. */
 int mods_sync_footswitch1(const fw_event *e)
 {
-    if (direct())
+    if (mods_on(MODS_SYNC_FS_PER_LOOP))
         fw_settings_page.sync_track = 0;
     return fw_sync_footswitch(e);
 }
@@ -30,7 +24,7 @@ int mods_sync_footswitch1(const fw_event *e)
 /* Footswitch 2 in A+B SYNC. */
 int mods_sync_footswitch2(const fw_event *e)
 {
-    if (!direct())
+    if (!mods_on(MODS_SYNC_FS_PER_LOOP))
         return fw_sync_select(e);
     fw_settings_page.sync_track = 1;
     return fw_sync_footswitch(e);
@@ -57,7 +51,7 @@ static uint32_t colour(unsigned t)
 /* Wherever the firmware updates the footswitch LEDs. */
 void mods_leds(void)
 {
-    if (fw_loop_mode != 0 || !direct()) {
+    if (fw_loop_mode != FW_LOOP_SYNC || !mods_on(MODS_SYNC_FS_PER_LOOP)) {
         fw_leds();
         return;
     }

@@ -32,6 +32,8 @@ fw_main_screen = 0x20001FA0;
 /* Drums and loops */
 fw_drum_silence_voices = 0x0001A2A9;
 fw_drum_save_track = 0x00009F71;
+fw_drum_load_track = 0x00009F03;
+fw_slot_load_track = 0x0000B379;
 fw_drum_flags = 0x2000EE20;
 fw_drum_records = 0x2000EE5C;
 fw_tracks = 0x2000B2A8;
@@ -54,6 +56,20 @@ fw_img_dsc = 0x00018BAD;
 fw_font_cache = 0x00018AE1;
 fw_glyph_dsc = 0x00013D3D;
 fw_glyph_bitmap = 0x00013E73;
+
+/* Drum patterns */
+fw_part_load = 0x00009A1F;
+fw_drum_part = 0x2000A2A8;
+
+/* Files */
+f_open = 0x0001B779;
+f_read = 0x0001B95B;
+f_write = 0x0001BABB;
+f_close = 0x0001BD31;
+fw_path_prefix = 0x0000A3ED;
+
+/* Boot */
+fw_boot_end = 0x0000C771;
 
 /* Memory */
 memcpy = 0x0001A3B9;

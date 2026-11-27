@@ -10,14 +10,17 @@
 
    That start (code at 0x3444, in its critical section, right after it has set the new loop
    recording and before it stops the other) ends the critical section through here, with r0 = the
-   new loop's fields from 0x4B4 on: the new loop becomes the active one, as at the switch-over. */
+   new loop's fields from 0x4B4 on: the new loop becomes the active one, as at the switch-over.
+   The switch-over also loads the new loop's drums (its drum set, groove and on/off); that start
+   left the drums as they were, the other loop's, so here they are loaded too. */
 #include "mods.h"
 
 #define START_FIELDS 0x4B4
 
 void mods_split_rec_start(volatile uint8_t *fields)
 {
-    volatile fw_track *t = (volatile fw_track *)(fields - START_FIELDS);
-    fw_settings_page.track = t != &fw_tracks[0];
+    unsigned n = fw_track_index((volatile fw_track *)(fields - START_FIELDS));
+    fw_settings_page.track = n;
     fw_critical_exit();
+    fw_drum_load_track(n);
 }

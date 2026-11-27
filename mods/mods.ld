@@ -5,6 +5,12 @@ MEMORY
   CAVE (rx) : ORIGIN = 0x4E200, LENGTH = 0x4FE00 - 0x4E200
 }
 
+/* Fast memory the firmware leaves unused (instruction memory above the most code the bootloader
+   loads, up to the end of its banks): the drum patterns' pool (drum_patterns.c). Its content is
+   undefined at power-on. */
+drum_pool = 0x50000;
+drum_pool_end = 0x70000;
+
 INCLUDE firmware.ld
 
 SECTIONS

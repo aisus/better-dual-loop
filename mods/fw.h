@@ -119,17 +119,26 @@ _Static_assert(sizeof(fw_track) == 0x538, "fw_track: one loop, as the firmware's
 #define FW_TRACK_REC_ENDING 0x08                /* recording, to end at the next bar */
 #define FW_TRACK_PLAYING 0x100
 #define FW_TRACK_DUBBING 0x10000
+enum { FW_LOOP_SYNC = 0, FW_LOOP_SPLIT = 1, FW_LOOP_GIG = 2 };   /* fw_loop_mode: A+B SYNC, A/B SPLIT, GIG */
 #define FW_DRUMS_ON 0x01                        /* fw_drum_flags: playing */
 #define FW_DRUMS_AUDIBLE 0x40                   /* heard (both bits: the drums sound) */
 
 void fw_drum_silence_voices(void);              /* cuts the drum sounds playing */
 void fw_drum_save_track(unsigned t);            /* saves the drums' state to loop t's record */
+void fw_drum_load_track(unsigned t);            /* loop t's record into the drums, t the active loop */
+/* Restores loop t's drum record (and its audio's place) from memory slot `slot`; r2, r3 passed on. */
+uint64_t fw_slot_load_track(int slot, unsigned t, uint32_t r2, uint32_t r3);
 extern volatile uint32_t fw_drum_flags;
 extern volatile fw_drum_record fw_drum_records[FW_TRACKS];
 extern volatile fw_track fw_tracks[FW_TRACKS];
 extern volatile int16_t fw_memory_slot;         /* the memory slot loaded */
-extern volatile uint8_t fw_loop_mode;           /* 0 A+B SYNC, 1 A/B SPLIT, 2 GIG */
+extern volatile uint8_t fw_loop_mode;           /* FW_LOOP_* */
 void fw_critical_exit(void);                    /* ends a critical section (nested) */
+
+static inline unsigned fw_track_index(volatile fw_track *t)
+{
+    return t != &fw_tracks[0];
+}
 
 /* --- Footswitches and their LEDs ---------------------------------------------------------------- */
 
@@ -158,6 +167,44 @@ void *fw_img_dsc(const uint8_t *bmp);           /* an LVGL image of a BMP */
 fw_picture_font *fw_font_cache(const uint8_t *bmp, int *found);   /* a BMP's cache entry */
 void fw_glyph_dsc(void);                        /* callbacks of picture fonts */
 void fw_glyph_bitmap(void);
+
+/* --- The drum patterns ------------------------------------------------------------------------- */
+
+/* A part (one cell of a style's 4 x 4 grid), as the firmware stores it: a header of 6 words
+   {words, 6, tempo, time signature 0x0402 | 0x0302, beats, kit}, then events {tick | 0x80000000,
+   note | velocity << 8} at 120 ticks per beat, the last one {(beats * 120 - 1) | 0x80000000,
+   0x7FFFFFFF}. */
+#define FW_PART_WORDS 0x400                     /* the most fw_drum_part holds */
+
+/* Copies the part sel = {style, part} of the 4/4 (meter 0) or 3/4 pattern set into fw_drum_part,
+   after making sel valid in place: a style out of range becomes 0 (the count-in), as does the part
+   of style 0, and a part out of range. */
+void fw_part_load(int meter, uint8_t sel[2]);
+extern uint32_t fw_drum_part[FW_PART_WORDS];
+
+/* --- Files: the firmware's FatFs, on the pedal's USB drive -------------------------------------- */
+
+typedef struct {
+    uint32_t _[0x228 / 4];
+} fw_file;                                      /* FatFs FIL */
+
+#define FW_FA_READ 0x01
+#define FW_FA_WRITE 0x02
+#define FW_FA_CREATE_ALWAYS 0x08
+#define FW_FR_NO_FILE 4
+#define FW_FR_NO_PATH 5
+
+int f_open(fw_file *f, const char *path, unsigned mode);
+int f_read(fw_file *f, void *buf, unsigned n, unsigned *done);
+int f_write(fw_file *f, const void *buf, unsigned n, unsigned *done);
+int f_close(fw_file *f);
+unsigned fw_path_prefix(char *dst);             /* writes the firmware's folder, returns its length */
+
+/* --- Boot --------------------------------------------------------------------------------------- */
+
+/* A step at the end of the boot (0x2080): kind is 2 on a normal boot, 1 on the boot that skips the
+   drum and settings set-up. The other arguments are passed on as they come. */
+int fw_boot_end(void *a, unsigned kind, unsigned c, unsigned d);
 
 /* --- The C library ------------------------------------------------------------------------------ */
 

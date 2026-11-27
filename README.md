@@ -2,18 +2,14 @@
 
 An unofficial firmware mod for the [NUX Dual Loop Stereo](https://nuxaudio.com/product/dualloopstereo/) (NML-3DLS) looper pedal.
 
-**[Patch the firmware in your browser](https://aisus.github.io/better-dual-loop/)**
+**[The page](https://aisus.github.io/better-dual-loop/)**: patch the firmware, put your own drum patterns on the pedal, get the stock ones as MIDI files.
 
 <details>
 <summary><b>AI usage disclaimer</b></summary>
 
-The code in this project is the result of an involved reverse-engineering process done with the [Ghidra](https://github.com/NationalSecurityAgency/ghidra) framework and an AI coding assistant (Claude Code).
+This project was made by reverse engineering the firmware with [Ghidra](https://github.com/NationalSecurityAgency/ghidra) and an AI coding assistant (Claude Code).
 
-The author does not claim the expertise in embedded software and reverse engineering needed to build a similar solution without AI tools, or to verify that the way the firmware is modified is optimal.
-
-Each modification is the result of many iterations of on-device testing and tweaking, but was only tried on one real pedal. Everything is provided as is, with no guarantee. Using this patch on your device is your own responsibility.
-
-If you have the expertise to improve the solution, contributions are very welcome.
+The author does not claim the expertise in embedded software and reverse engineering needed to build this without AI tools, or to verify that the way the firmware is modified is optimal.
 
 </details>
 
@@ -21,91 +17,103 @@ If you have the expertise to improve the solution, contributions are very welcom
 
 <p>
   <img src="web/screens/menu.png" width="49%" alt="The settings menu with the new MODS tile after RESET">
-  <img src="web/screens/mods.png" width="49%" alt="The MODS page: DRUMS ON STOP switched on, SPLIT: INHERIT DRUMS and SYNC: FS PER LOOP off">
+  <img src="web/screens/mods.png" width="49%" alt="The MODS page: DRUMS ON STOP switched on, SPLIT: INHERIT DRUMS off, STRENGTH +1 dimmed under it, a scroll bar on the right">
 </p>
 
-Modifications in the new MODS settings menu (V2.2.0-MOD1.2):
+Switches on the new MODS page of the settings menu (V2.2.0-MOD1.3), all off by default. Off, the pedal behaves like the official firmware, apart from the [always-on changes](#always-on).
 
-| Switch | Default | Patched |
+| Switch | Off (stock) | On |
 |---|---|---|
-| **DRUMS ON STOP** | Stopping a loop also stops the drum machine. | The drums keep playing after stopping the loop; only DRUM ON/OFF stops them. Each recorded loop keeps its drums as it last played. |
-| **SPLIT: INHERIT DRUMS** | In A/B mode each loop has its own drums (on/off, drum set, groove): drums started with the first loop stop when you record the second, unless you switch them on for it. | The second loop, until recorded, takes over the first loop's drums: on/off, drum set and groove (variation and strength). |
+| **DRUMS ON STOP** | Stopping a loop also stops the drums. | The drums keep playing after the loop stops. DRUM ON/OFF stops them. |
+| **SPLIT: INHERIT DRUMS** | In A/B mode, the second loop has its own drums: drums started with the first loop stop when you record the second. | Until recorded, the second loop takes the first loop's drums: on/off, drum set and groove. |
+| &nbsp;&nbsp;**STRENGTH +1** | The second loop gets the first loop's groove. | The second loop gets the first loop's groove one strength higher. |
+| &nbsp;&nbsp;**VARIATION +1** | The second loop gets the first loop's groove. | The second loop gets the first loop's groove one variation further. |
 | **SYNC: FS PER LOOP** | In A+B mode, footswitch 1 works on the selected loop and footswitch 2 selects the loop. | Footswitch 1 works on loop 1 and footswitch 2 on loop 2, as in A/B mode. |
 
-Every switch is off by default, which behaves like the official firmware, apart from the always-on changes below.
-
 Details:
-- DRUMS ON STOP covers every way a loop stops: CTRL, external footswitch, any STOP MODE (LOOP END, ONE SHOT, FADE OUT).
-- DRUMS ON STOP also lets each recorded loop keep its drums. For example: a loop plays with drums, you stop the loop, the drums play on, and you stop them with DRUM ON/OFF. When you start the loop again, its drums start with it. In the official firmware, that DRUM ON/OFF press also switched the drums off for the loop, so it came back without them. A recorded loop's drums now change only while it plays (or on the drum page). A loop not recorded yet starts with the drums as they are when you record it.
-- SYNC: FS PER LOOP: every press works as footswitch 1 does in A+B mode (record, play, dub, undo, stop, clear), on that footswitch's loop. Each footswitch's LED shows its own loop, as in A/B mode. An external footswitch set to act as footswitch 1 or 2 does the same. CTRL is unchanged.
-- SPLIT: INHERIT DRUMS: pressing DRUM ON/OFF, or choosing another drum set or groove, while a loop not recorded yet is selected counts as an explicit choice for that loop: it keeps its own drums instead. The tempo is shared by both loops anyway.
-- SPLIT: INHERIT DRUMS also fixes an issue of the official firmware: saving a memory slot again while a loop is unchanged stored the selected loop's drum on/off for it, so one loop could take the other's. With SPLIT: INHERIT DRUMS (or DRUMS ON STOP) on, each loop keeps its own.
+- DRUMS ON STOP works for every way a loop stops: CTRL, an external footswitch, every STOP MODE.
+- DRUMS ON STOP also keeps each recorded loop's drums. For example: a loop plays with drums, you stop the loop, then the drums with DRUM ON/OFF. When you start the loop again, its drums start with it. A recorded loop's drums change only while it plays or on the drum page.
+- SPLIT: INHERIT DRUMS: pressing DRUM ON/OFF, or choosing a drum set or groove, while the empty loop is selected gives it its own drums instead. The tempo is always shared.
+- SPLIT: INHERIT DRUMS (or DRUMS ON STOP) also fixes an official firmware issue: saving a memory slot again with a loop unchanged stored the selected loop's drum on/off for it.
+- STRENGTH +1 and VARIATION +1 are part of SPLIT: INHERIT DRUMS: switching one on switches it on too. With both on, a first loop on groove 2.1 gives the second loop 3.2, one cell up and right on the drum page's grid. At the grid's edge the groove stays (4.4 stays 4.4). The step goes to the loop recorded second, whichever it is.
+- SYNC: FS PER LOOP: each footswitch does what footswitch 1 does in A+B mode (record, play, dub, undo, stop, clear) on its own loop, and its LED shows that loop. The same for an external footswitch set to act as footswitch 1 or 2. CTRL is unchanged.
 
 ### Always on
 
-| Change | Default | Patched |
+| Change | Stock | Patched |
 |---|---|---|
-| **Red delete screen** | The memory slot's delete confirmation looks just like the save one, so a SAVE held a little too long, which asks to delete, is easily confirmed by mistake. | The delete confirmation is red (its title bar and the dim around it). |
-| **A+B mode: recording start** | A loop recorded while the other plays, with the record press slightly late (in the first beat of the bar), plays one bar off against the other loop. | The new loop plays where it was recorded. |
-| **A/B mode: CTRL after recording** | Recording a loop just as the other comes round (in its first beat) leaves CTRL's single press doing nothing until another footswitch is pressed. | CTRL works on the new loop as usual. |
+| **Red delete screen** | The memory slot's delete confirmation looks like the save one, so a SAVE held too long is easily confirmed as a delete. | The delete confirmation is red. |
+| **Drum patterns** | Stock drum patterns. | Patterns put on the pedal with the page replace the stock ones (see [Drum patterns](#drum-patterns)). |
+| **A+B mode: recording start** | A loop recorded while the other plays, pressed slightly late (in the first beat of the bar), plays one bar off against the other loop. | The new loop plays where it was recorded. |
+| **A/B mode: drums of a loop started at once** | Recording a loop just as the other comes round (in its first beat) starts it at once, but with the other loop's drums. | The new loop plays its own drums. |
+| **A/B mode: CTRL after recording** | Recording a loop just as the other comes round leaves CTRL's single press doing nothing until another footswitch is pressed. | CTRL works as usual. |
+
+## Drum patterns
+
+The page's **Drum patterns** replaces any of the pedal's drum patterns with your MIDI clips: pick a style and a cell of its grid (strength and variation, as on the pedal's drum page), drop a clip of 1 to 8 bars, save to the pedal and restart it. Needs the mod and Chrome or Edge on a computer.
+
+- Clips use General MIDI drum notes (the page lists the 13 the pedal's kits have). The style's kit and tempo stay.
+- All your patterns are in one file, `NML-3DLS/DRUM/PATTERNS.BIN`. To get the stock drums back, revert the cells and save, or delete the file. The official firmware ignores it.
+- The **MIDI extractor** turns NUX's official zip into MIDI files of all 672 stock patterns (`01 ROCK-1/4-4/ROCK-1-44-2.3.mid`). The patterns are NUX's: for your own use.
 
 ## Using it
 
-1. Download firmware **V2.2.0** from [NUX's website](https://nuxaudio.com/product/dualloopstereo/) and keep the zip: this release modifies only V2.2.0.
-2. Open [the page](https://aisus.github.io/better-dual-loop/), drop the zip on it and download the result.
-3. Flash it with NUX's updater, as described on the page: it is the standard update procedure from NUX's firmware update guide.
+1. Download firmware **V2.2.0** from [NUX's website](https://nuxaudio.com/product/dualloopstereo/), the only supported version, and keep the zip.
+2. Drop the zip on [the patcher](https://aisus.github.io/better-dual-loop/#/patcher) and download the result.
+3. Flash it with NUX's updater, following the steps on the page (NUX's standard update procedure).
 
-To go back, flash `NML-3DLSFirmwareV2.2.0.bin` from the NUX zip the same way. Your loops, settings and boot GIF are kept either way.
+To go back, flash `NML-3DLSFirmwareV2.2.0.bin` from the NUX zip the same way. Loops, settings and the boot GIF are kept either way.
 
-The page accepts only the official V2.2.0 image and produces only the exact image that was tested on the pedal, both checked by SHA-256. Your file is processed in your browser and never leaves your computer. Flashing was tested on Windows. NUX's macOS updater should work the same way but is not tested. NUX has no updater for Linux.
+Everything runs in the browser, nothing is uploaded. Flashing is tested on Windows. NUX's macOS updater should work the same way but is untested. NUX has no updater for Linux.
 
 ## How it works
 
-The page runs the patch (`patch/`) on your file, in your browser:
+The page runs the patch (`patch/`) on your file:
 
-1. It checks that your file is the official V2.2.0 image, by its SHA-256.
-2. It adds our code, compiled from `mods/`, right after NUX's code, and points the firmware to it:
-   - The settings menu's drawing, knobs and buttons go through our code, which adds the MODS tile and page and passes everything else on unchanged.
-   - The 11 places where stopping a loop also stops the drums call our code instead.
-   - When a loop's drum settings are saved, our code passes the drum on/off, drum set and groove on to the loops not recorded yet, unless a choice was made for them; with DRUMS ON STOP and all loops stopped, it keeps the drums of the loops already recorded. The drum page's DRUM 1/2 tab, which sets a loop's drums on directly, goes through our code too.
-   - A loop starting while the other is stopped restarts the drums through our code, which in A+B mode switches them on or off as that loop last played (DRUMS ON STOP on).
-   - Saving a memory slot takes each loop's drum on/off from that loop's own settings instead of from the drums playing at that moment (SPLIT: INHERIT DRUMS on in A/B mode, or DRUMS ON STOP on).
-   - In A+B mode, footswitches 1 and 2 (and an external footswitch acting as either) go through our code, which lets each work on its own loop when SYNC: FS PER LOOP is on; every update of the footswitch LEDs goes through our code too.
-   - Where a recording starts at a bar line, and where A/B mode starts one at once, our code sets the recording's first beat and the active loop.
-   - The memory slot's save/delete dialog sets two of its colours through our code, which paints the delete one red.
+1. It checks that the file is the official V2.2.0 image, by its SHA-256.
+2. It adds our code, compiled from `mods/`, after NUX's code, and routes these firmware calls through it:
+   - The settings menu's drawing, knobs and buttons: adds the MODS tile and page, passes the rest on.
+   - The 11 places where stopping a loop also stops the drums (DRUMS ON STOP).
+   - Saving a loop's drum settings, and the drum page's DRUM 1/2 tab: passes the drums to loops not recorded yet (SPLIT: INHERIT DRUMS, with the +1 steps), keeps recorded loops' drums while all loops are stopped (DRUMS ON STOP). Loading a memory slot clears the empty loops' own choices.
+   - Restarting the drums when a loop starts while the other is stopped: in A+B mode, as that loop last played (DRUMS ON STOP).
+   - Saving a memory slot: each loop's drum on/off from its own settings, not from the drums playing (SPLIT: INHERIT DRUMS in A/B mode, or DRUMS ON STOP).
+   - Footswitches 1 and 2 in A+B mode, and the footswitch LEDs (SYNC: FS PER LOOP).
+   - Recordings starting at a bar line or, in A/B mode, at once: sets the first beat, the active loop and its drums (always on).
+   - Every start: reads `NML-3DLS/DRUM/PATTERNS.BIN`, checks each pattern and writes `STATUS.TXT` next to it. The drum clock then takes a pattern from the file over the stock one.
+   - The memory slot dialog's colours: red for delete.
 3. It adds our pictures (`images/`) for the MODS tile and page, and stacks the release lines under the NUX logo on the boot screen.
-4. It updates the image's sizes and checksums, and moves the space the pedal keeps for a custom boot GIF past the added pictures.
-5. It checks that the result is exactly the image that was tested on a pedal, by its SHA-256.
+4. It updates the image's sizes and checksums, and moves the space kept for a custom boot GIF past the added pictures.
+5. It checks that the result is exactly the image tested on the pedal, by its SHA-256.
 
-The patched image is written only to the firmware area. The bootloader's update mode, which the official updater uses, is never touched, so the pedal can always go back to the official firmware.
+The patched image is written only to the firmware area. The bootloader's update mode, which the official updater uses, is not changed, so the official firmware can always be flashed back.
 
-Every change, with its address in the firmware and a short comment: [`patch/mods.js`](patch/mods.js).
+Every change, with its firmware address and a comment: [`patch/mods.js`](patch/mods.js).
 
 ## Repository
 
 | Path | Contents |
 |---|---|
-| `web/` | The page |
+| `web/` | The page, a Vue app: `pages/` and `components/` (TypeScript), `state/` (what they show), `patcher.js`, `extractor.js` and `zip.js` (your file in and out) |
+| `drum/` | Drum patterns: the file the pedal reads (`patterns.js`), MIDI in and out (`midi.js`), the styles, the pedal's drive, the stock patterns from NUX's firmware (`stock.js`) |
 | `patch/` | The patch the page runs: the firmware's file format, and every change (`mods.js`) |
-| `mods/` | The C source of the code the mod adds; `fw.h` and `firmware.ld` name the firmware functions and data it uses |
-| `images/` | The pictures the mod adds, exactly as they go into the firmware (BMP) |
+| `mods/` | The C source of the added code. `fw.h` and `firmware.ld` name the firmware functions and data it uses |
+| `images/` | The added pictures, as they go into the firmware (BMP) |
 | `release.json` | The version and SHA-256 checksums: official input, our compiled code, output |
 | `tests/` | Tests on synthetic data, no NUX firmware needed |
 
 Run `npm ci` first (Node 22.13+). Then:
 - `npm test` runs the tests
-- `npm run lint` checks the JavaScript with ESLint and its formatting with Prettier (`npm run format` fixes the formatting)
-- `npm run build` assembles the page in `build/site/` (run `make` first, see below)
-- `npm run dev` serves the page on <http://localhost:8000/>, rebuilt and reloaded on every change (also after `make`).
+- `npm run lint` runs ESLint and Prettier (`npm run format` fixes the formatting)
+- `npm run build` checks the types and builds the page into `build/site/`, as one readable script (run `make` first)
+- `npm run dev` serves the page on <http://localhost:8000/>, reloading on changes
 
-`make` compiles `mods/` with the [Arm GNU Toolchain 14.2.rel1](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads) (`make TOOLCHAIN=<its folder>` if it is not on the PATH).
-Every deploy does the same and stops if the result differs from `release.json`.
+`make` compiles `mods/` with the [Arm GNU Toolchain 14.2.rel1](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads) (`make TOOLCHAIN=<its folder>` if it is not on the PATH). The deploy builds it the same way and stops if its SHA-256 differs from `release.json`.
 
 The pictures use the [Open Sans](https://fonts.google.com/specimen/Open+Sans) typeface.
 
 ## Support
 
-A hobby project, tested on one pedal. Issues (bugs, reports from other devices, feature requests) are welcome. Fixes come on a best-effort basis, with no promise of a port to a newer NUX firmware.
+A hobby project, tested on one pedal. Issues (bugs, reports from other devices, feature requests) and contributions are welcome. Fixes are best effort, and a port to a newer NUX firmware is not promised.
 
 ## Legal
 

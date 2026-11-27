@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import JSZip from "jszip";
-import { readInput, repackZip } from "../web/zip.js";
+import { makeZip, readInput, repackZip } from "../web/zip.js";
 
 const DATE = new Date(Date.UTC(2025, 3, 29, 10, 20, 30));
 
@@ -41,7 +41,7 @@ test("takes the one .bin from a zip, ignoring macOS metadata", async () => {
 
 test("refuses a zip without or with several .bin files", async () => {
   for (const entries of [{ "a.txt": Uint8Array.of(1) }, { "a.bin": Uint8Array.of(1), "b/c.bin": Uint8Array.of(2) }]) {
-    await assert.rejects(readInput(await zip(entries)), /expected exactly one/);
+    await assert.rejects(readInput(await zip(entries)), /\.bin files, not one/);
   }
 });
 
@@ -49,7 +49,7 @@ test("refuses a damaged zip", async () => {
   const data = await zip({ "fw.bin": new TextEncoder().encode("the official image") }, { store: true });
   const at = Buffer.from(data).indexOf("official"); // stored as is
   data[at] ^= 1;
-  await assert.rejects(readInput(data), /CRC32/);
+  await assert.rejects(readInput(data), (e) => /can't be read/.test(e.message) && /CRC32/.test(e.cause.message));
   await assert.rejects(readInput(new TextEncoder().encode("PK\x03\x04 not really a zip")));
 });
 
@@ -83,4 +83,13 @@ test("repacks the zip with the new image in place of the .bin", async () => {
     if (platform === "UNIX") assert.equal(after["FW_V1-MOD/Tool.app/run"].unixPermissions, 0o100755);
     assert.equal(after["FW_V1-MOD/"].dir, true);
   }
+});
+
+test("makes a zip of files in folders", async () => {
+  const files = [
+    { name: "a b/c.mid", bytes: Uint8Array.of(1, 2, 3) },
+    { name: "a b/d/e.mid", bytes: new Uint8Array(1000) },
+  ];
+  const archive = await JSZip.loadAsync(await makeZip(files));
+  for (const { name, bytes } of files) assert.deepEqual(await archive.file(name).async("uint8array"), bytes);
 });

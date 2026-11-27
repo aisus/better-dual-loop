@@ -22,22 +22,25 @@ export function symbols(text) {
   return out;
 }
 
+// What to use instead of a file that isn't NUX's. (Messages are lines of the page's console: 44
+// columns at most.)
+export const USE_NUX = "Use NUX's zip, or the .bin from it.";
+
+// The official image's header, code and resources; throws for any other image.
+export async function readOfficial(input, release) {
+  const hash = await sha256(input);
+  if (hash === release.output_sha256) {
+    throw new Error(`This is the modded firmware.\n${USE_NUX}`);
+  }
+  if (hash !== release.input_sha256) {
+    throw new Error(`Not the official ${release.official} firmware.\n${USE_NUX}`);
+  }
+  return parse(input);
+}
+
 // `files` maps each name in FILES to its bytes. Returns the modded image.
 export async function patch(input, files, release, { development = false } = {}) {
-  const inputHash = await sha256(input);
-  if (inputHash === release.output_sha256) {
-    throw new Error(
-      `This is already the modded ${release.version} firmware: flash it as it is.\n` +
-        "To patch, use the zip as downloaded from NUX, or the .bin from it.",
-    );
-  }
-  if (inputHash !== release.input_sha256) {
-    throw new Error(
-      `This is not the official ${release.official} firmware. ` +
-        `Use the zip as downloaded from NUX, or the .bin from it.\nsha256\u00a0${inputHash}`,
-    );
-  }
-  const official = parse(input);
+  const official = await readOfficial(input, release);
 
   // Code: NUX's with our changes, then mods.bin.
   const blob = files["mods/mods.bin"];
@@ -55,7 +58,7 @@ export async function patch(input, files, release, { development = false } = {})
 
   const image = build(official.header, code, addPictures(res, pictures));
   if (!development && (await sha256(image)) !== release.output_sha256) {
-    throw new Error(`The result is not the released ${release.version} image. Reload the page and try again.`);
+    throw new Error("The result is not the released image.\nReload the page and try again.");
   }
   return image;
 }

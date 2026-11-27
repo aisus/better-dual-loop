@@ -14,14 +14,16 @@ CFLAGS := -mcpu=cortex-m7 -mthumb -mfpu=fpv5-d16 -mfloat-abi=hard \
 	-Os -ffreestanding -fno-builtin -nostdlib -fno-common \
 	-Wall -Wextra -Werror -std=c11
 SOURCES := $(sort $(wildcard mods/*.c))
+# The release's version, which STATUS.TXT names (mods/drum_patterns.c).
+RELEASE := $(shell sed -n 's/^ *"version": "\(.*\)",$$/\1/p' release.json)
 
 .PHONY: mods clean
 
 mods: $(OUT)/mods.bin $(OUT)/mods.sym $(OUT)/mods.lst
 
-$(OUT)/mods.elf: $(SOURCES) $(wildcard mods/*.h mods/*.ld) Makefile
+$(OUT)/mods.elf: $(SOURCES) $(wildcard mods/*.h mods/*.ld) Makefile release.json
 	@mkdir -p $(OUT)
-	$(CROSS)gcc $(CFLAGS) -I mods -T mods/mods.ld -L mods \
+	$(CROSS)gcc $(CFLAGS) -DRELEASE='"$(RELEASE)"' -I mods -T mods/mods.ld -L mods \
 		-Wl,-Map,$(OUT)/mods.map -o $@ $(SOURCES)
 
 $(OUT)/mods.bin: $(OUT)/mods.elf
